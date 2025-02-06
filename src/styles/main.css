@@ -2,76 +2,62 @@
 body {
     margin: 0;
     overflow: hidden;
-    background: #f5f5f5;
-  }
-  
-  #visualization-container {
+    background: #1a1a1a;
+}
+
+#visualization-container {
     position: relative;
     width: 100vw;
     height: 100vh;
-    background: #f5f5f5;
-    overflow: hidden;
-  }
-  
-  #main-svg {
+}
+
+canvas {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 2;
-  }
-  
-  #background-canvas {
+}
+
+#background-canvas {
     position: absolute;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
     z-index: 1;
-    pointer-events: none;
-  }
-  
-  .node {
-    cursor: pointer;
-    transition: opacity 0.3s ease;
-  }
-  
-  .node:hover {
-    filter: brightness(1.2);
-  }
-  
-  #tooltip {
+}
+
+#main-svg {
     position: absolute;
-    visibility: hidden;
+    top: 0;
+    left: 0;
+    z-index: 2;
+}
+
+#tooltip {
+    position: absolute;
+    display: none;
     background: rgba(0, 0, 0, 0.8);
     color: white;
     padding: 5px 10px;
     border-radius: 4px;
     font-size: 12px;
     pointer-events: none;
-  }
-  
-  .dg.ac {
-    z-index: 1000 !important;
-  }
-  
-  #group-by-supertype {
+    z-index: 100;
+}
+
+#group-by-supertype {
     position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
+    z-index: 1000;
     padding: 10px 20px;
     background: #333;
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    z-index: 100;
-  }
-  
-  /* Stili per la modale */
-  .modal {
+}
+
+.modal {
     display: none;
     position: fixed;
     top: 0;
@@ -80,74 +66,87 @@ body {
     height: 100%;
     background: rgba(0, 0, 0, 0.5);
     z-index: 1000;
-  }
-  
-  .modal.visible {
+}
+
+.modal.visible {
     display: flex;
     justify-content: center;
     align-items: center;
-  }
-  
-  .modal-content {
+}
+
+.modal-content {
     background: white;
     padding: 20px;
     border-radius: 8px;
     max-width: 500px;
     width: 90%;
     position: relative;
-  }
-  
-  .close-button {
+}
+
+.close-button {
     position: absolute;
     top: 10px;
     right: 10px;
     background: none;
     border: none;
-    font-size: 20px;
+    font-size: 24px;
     cursor: pointer;
-  }
-  
-  .badge {
+}
+
+.node {
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+}
+
+.node:hover {
+    filter: brightness(1.2);
+}
+
+.dg.ac {
+    z-index: 1000 !important;
+}
+
+.badge {
     display: inline-block;
     padding: 4px 8px;
+    margin-right: 8px;
     border-radius: 4px;
-    margin-right: 5px;
     color: white;
     font-size: 12px;
-  }
-  
-  .tag {
+}
+
+.tag {
     display: inline-block;
     padding: 2px 6px;
+    margin: 2px;
     background: #eee;
     border-radius: 3px;
-    margin: 2px;
     font-size: 12px;
-  }
-  
-  #controls {
+}
+
+#controls {
     position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 3;
-  }
-  
-  .tooltip {
+}
+
+.tooltip {
     pointer-events: none;
     z-index: 1000;
-  }
-  
-  .tags {
-    margin-top: 16px;
-  }
-  
-  .initiative-type {
-    margin: 12px 0;
-  }
-  
-  .description {
+}
+
+.tags {
+    margin-top: 10px;
+}
+
+.initiative-type {
+    margin: 10px 0;
+}
+
+.description {
     line-height: 1.5;
     margin: 16px 0;
-  }
+}
   
