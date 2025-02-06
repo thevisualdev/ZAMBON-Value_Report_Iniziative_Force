@@ -13,23 +13,34 @@ export class VisualizationController {
       return;
     }
 
+    // Enable alpha blending for trails and nodes.
+    this.gl.enable(this.gl.BLEND);
+    this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
+
     // Set up canvas dimensions
     this.canvas.width = config.width;
     this.canvas.height = config.height;
 
-    // Define default parameters BEFORE creating the simulation
+    // Define default parameters BEFORE creating the simulation.
     this.params = {
-      nodeSize: 28,
-      forceCenterStrength: 0.015,
-      forceCollideRadius: 0,   // default collision extra radius set to 0
-      grouping: true,
-      groupingStrength: 0.07,
-      groupingRadius: 150,     // radius for placing group centers in a circle
-      damping: 0.9,            // simulation damping (velocityDecay)
+      nodeSize: 18,
+      forceCenterStrength: 0.71,
+      forceCollideRadius: 0,  // default collision extra radius set to 0
+      grouping: false,        // start unchecked
+      groupingStrength: 0.20,
+      groupingRadius: 300,
+      damping: 0.9,
+      spawnDelay: 100,
+      trail: {
+        length: 50,
+        opacity: 0.01,
+        size: 300,
+        interval: 3
+      },
       halftone: {
-        radius: 3.7,
+        radius: 3.6,
         rotateR: 1.9,
-        rotateG: 5.85,
+        rotateG: 5.9,
         rotateB: 0.79,
         scatter: 0.0,
         shape: 1,
@@ -37,28 +48,27 @@ export class VisualizationController {
         blendingMode: 1,
         greyscale: false,
         disable: false
-      },
-      trail: {
-        length: 60,    // How many ticks the trail stays
-        opacity: 0.3,  // Base opacity for the trail
-        size: 10       // Size (point size) for the trail points
       }
     };
 
-    // State for nodes and trails
+    // To store center force strength before grouping.
+    this.prevCenterStrength = this.params.forceCenterStrength;
+
+    // State for nodes, trails, etc.
     this.nodes = [];       // full dataset
     this.activeNodes = []; // nodes that have been spawned
     this.trails = [];      // each trail: { x, y, age, color }
     this.maxNodes = 70;
     this.currentSpawnIndex = 0;
     this.lastSpawnTime = 0;
-    this.spawnDelay = 100; // ms between spawns
+    // Use spawnDelay from params:
+    this.spawnDelay = this.params.spawnDelay;
+    this.tickCount = 0;
 
-    // Group centers will be computed in setData.
+    // Group centers (computed later in setData)
     this.groupCenters = {};
 
-    // Set up D3 simulation using forceX and forceY for continuous centering,
-    // a collide force, and a custom grouping force.
+    // Set up D3 simulation with continuous centering, collision, and custom grouping.
     this.simulation = d3.forceSimulation()
       .force("x", d3.forceX(config.width / 2).strength(this.params.forceCenterStrength))
       .force("y", d3.forceY(config.height / 2).strength(this.params.forceCenterStrength))
@@ -73,20 +83,20 @@ export class VisualizationController {
     this.nodePositions = new Float32Array(this.maxNodes * 2);
     this.nodeColors = new Float32Array(this.maxNodes * 4);
 
-    // Initialize programs, buffers, and offscreen framebuffer
+    // Initialize programs, buffers, and offscreen framebuffer.
     this.initPrograms();
     this.setupBuffers();
     this.initFramebuffer();
     this.setupGUI();
 
-    // Bind animate and start the loop
+    // Bind animate and start the loop.
     this.animate = this.animate.bind(this);
     requestAnimationFrame(this.animate);
   }
 
   /* ==========================================================================
      Custom Grouping Force
-     Pulls nodes toward their group's center.
+     Pulls each active node toward its group's center.
   ========================================================================== */
   groupingForce(alpha) {
     if (!this.params.grouping) return;
@@ -101,6 +111,7 @@ export class VisualizationController {
 
   /* ==========================================================================
      Shader and Program Initialization
+     NOTE: We add a uniform bool u_isTrail to control radial gradient for trails.
   ========================================================================== */
   initPrograms() {
     // --- Nodes Program (for rendering nodes and trails) ---
@@ -109,6 +120,8 @@ export class VisualizationController {
       in vec4 a_color;
       uniform vec2 u_resolution;
       uniform float u_pointSize;
+      // Pass u_isTrail to fragment shader.
+      uniform bool u_isTrail;
       out vec4 v_color;
       void main() {
         vec2 zeroToOne = a_position / u_resolution;
@@ -121,12 +134,19 @@ export class VisualizationController {
     const nodesFSSource = `#version 300 es
       precision mediump float;
       in vec4 v_color;
+      uniform bool u_isTrail;
       out vec4 outColor;
       void main() {
         vec2 coord = gl_PointCoord - vec2(0.5);
         float dist = length(coord);
-        if (dist > 0.5) discard;
-        outColor = v_color;
+        if(u_isTrail) {
+          // For trails, use a radial gradient: full alpha at center, 0 at rim.
+          float gradient = smoothstep(0.5, 0.0, dist);
+          outColor = vec4(v_color.rgb, v_color.a * gradient);
+        } else {
+          if(dist > 0.5) discard;
+          outColor = v_color;
+        }
       }
     `;
     this.nodesProgram = this.createProgram(nodesVSSource, nodesFSSource);
@@ -137,7 +157,8 @@ export class VisualizationController {
     };
     this.nodesUniformLocations = {
       resolution: this.gl.getUniformLocation(this.nodesProgram, "u_resolution"),
-      pointSize: this.gl.getUniformLocation(this.nodesProgram, "u_pointSize")
+      pointSize: this.gl.getUniformLocation(this.nodesProgram, "u_pointSize"),
+      isTrail: this.gl.getUniformLocation(this.nodesProgram, "u_isTrail")
     };
 
     // --- Halftone Program (for post-processing) ---
@@ -199,19 +220,19 @@ export class VisualizationController {
         } else if (u_shape == SHAPE_ELLIPSE) {
           rad = pow(abs(rad), 1.125) * rad_max;
           if (dist != 0.0) {
-            float dot_p = abs((p.x - coord.x) / dist * normal.x + (p.y - coord.y) / dist * normal.y);
+            float dot_p = abs((p.x - coord.x)/dist * normal.x + (p.y - coord.y)/dist * normal.y);
             dist = (dist * (1.0 - SQRT2_HALF_MINUS_ONE)) + dot_p * dist * SQRT2_MINUS_ONE;
           }
         } else if (u_shape == SHAPE_LINE) {
           rad = pow(abs(rad), 1.5) * rad_max;
-          float dot_p = (p.x - coord.x) * normal.x + (p.y - coord.y) * normal.y;
-          dist = hypot(normal.x * dot_p, normal.y * dot_p);
+          float dot_p = (p.x - coord.x)*normal.x + (p.y - coord.y)*normal.y;
+          dist = hypot(normal.x*dot_p, normal.y*dot_p);
         } else if (u_shape == SHAPE_SQUARE) {
           float theta = atan(p.y - coord.y, p.x - coord.x) - angle;
           float sin_t = abs(sin(theta));
           float cos_t = abs(cos(theta));
           rad = pow(abs(rad), 1.4);
-          rad = rad_max * (rad + ((sin_t > cos_t) ? rad - sin_t * rad : rad - cos_t * rad));
+          rad = rad_max * (rad + ((sin_t > cos_t) ? rad - sin_t*rad : rad - cos_t*rad));
         }
         return rad - dist;
       }
@@ -224,12 +245,12 @@ export class VisualizationController {
       };
       vec4 getSample(vec2 point) {
         vec4 tex = texture(u_inputBuffer, vec2(point.x / u_width, point.y / u_height));
-        float base = rand(vec2(floor(point.x), floor(point.y))) * PI22;
+        float base = rand(vec2(floor(point.x), floor(point.y)))* PI22;
         float step = PI22 / 8.0;
         float dist = u_radius * 0.66;
         for (int i = 0; i < 8; ++i) {
           float r = base + step * float(i);
-          vec2 coord = point + vec2(cos(r) * dist, sin(r) * dist);
+          vec2 coord = point + vec2(cos(r)*dist, sin(r)*dist);
           tex += texture(u_inputBuffer, vec2(coord.x / u_width, coord.y / u_height));
         }
         tex /= 9.0;
@@ -239,30 +260,30 @@ export class VisualizationController {
         Cell c;
         vec2 n = vec2(cos(grid_angle), sin(grid_angle));
         float threshold = step * 0.5;
-        float dot_normal = n.x * (p.x - origin.x) + n.y * (p.y - origin.y);
-        float dot_line = -n.y * (p.x - origin.x) + n.x * (p.y - origin.y);
-        vec2 offset = vec2(n.x * dot_normal, n.y * dot_normal);
+        float dot_normal = n.x*(p.x - origin.x) + n.y*(p.y - origin.y);
+        float dot_line = -n.y*(p.x - origin.x) + n.x*(p.y - origin.y);
+        vec2 offset = vec2(n.x*dot_normal, n.y*dot_normal);
         float offset_normal = mod(length(offset), step);
         float normal_dir = (dot_normal < 0.0) ? 1.0 : -1.0;
-        float normal_scale = ((offset_normal < threshold) ? -offset_normal : step - offset_normal) * normal_dir;
-        float offset_line = mod(length(p - offset - origin), step);
+        float normal_scale = ((offset_normal < threshold) ? -offset_normal : step-offset_normal)*normal_dir;
+        float offset_line = mod(length(p-offset-origin), step);
         float line_dir = (dot_line < 0.0) ? 1.0 : -1.0;
-        float line_scale = ((offset_line < threshold) ? -offset_line : step - offset_line) * line_dir;
+        float line_scale = ((offset_line < threshold) ? -offset_line : step-offset_line)*line_dir;
         c.normal = n;
-        c.p1 = p - n * normal_scale + vec2(n.y, -n.x) * line_scale;
-        c.p2 = c.p1 - n * ((offset_normal < threshold) ? step : -step);
-        c.p3 = c.p1 + vec2(n.y, -n.x) * ((offset_line < threshold) ? step : -step);
-        c.p4 = c.p1 - n * ((offset_normal < threshold) ? step : -step) + vec2(n.y, -n.x) * ((offset_line < threshold) ? step : -step);
+        c.p1 = p - n*normal_scale + vec2(n.y, -n.x)*line_scale;
+        c.p2 = c.p1 - n*((offset_normal < threshold) ? step : -step);
+        c.p3 = c.p1 + vec2(n.y, -n.x)*((offset_line < threshold) ? step : -step);
+        c.p4 = c.p1 - n*((offset_normal < threshold) ? step : -step) + vec2(n.y, -n.x)*((offset_line < threshold) ? step : -step);
         return c;
       }
       float getDotColour(Cell c, vec2 p, int channel, float angle, float aa) {
         float samp1, samp2, samp3, samp4;
-        if (channel == 0) {
+        if(channel==0){
           samp1 = getSample(c.p1).r;
           samp2 = getSample(c.p2).r;
           samp3 = getSample(c.p3).r;
           samp4 = getSample(c.p4).r;
-        } else if (channel == 1) {
+        } else if(channel==1){
           samp1 = getSample(c.p1).g;
           samp2 = getSample(c.p2).g;
           samp3 = getSample(c.p3).g;
@@ -278,35 +299,35 @@ export class VisualizationController {
         float dist3 = distanceToDotRadius(samp3, c.p3, c.normal, p, angle, u_radius);
         float dist4 = distanceToDotRadius(samp4, c.p4, c.normal, p, angle, u_radius);
         float res = 0.0;
-        res += (dist1 > 0.0) ? clamp(dist1 / aa, 0.0, 1.0) : 0.0;
-        res += (dist2 > 0.0) ? clamp(dist2 / aa, 0.0, 1.0) : 0.0;
-        res += (dist3 > 0.0) ? clamp(dist3 / aa, 0.0, 1.0) : 0.0;
-        res += (dist4 > 0.0) ? clamp(dist4 / aa, 0.0, 1.0) : 0.0;
+        res += (dist1>0.0)? clamp(dist1/aa, 0.0, 1.0):0.0;
+        res += (dist2>0.0)? clamp(dist2/aa, 0.0, 1.0):0.0;
+        res += (dist3>0.0)? clamp(dist3/aa, 0.0, 1.0):0.0;
+        res += (dist4>0.0)? clamp(dist4/aa, 0.0, 1.0):0.0;
         return clamp(res, 0.0, 1.0);
       }
       float blendColour(float a, float b, float t) {
-        if (u_blendingMode == BLENDING_LINEAR) {
-          return blend(a, b, 1.0 - t);
-        } else if (u_blendingMode == BLENDING_ADD) {
-          return blend(a, min(1.0, a + b), t);
-        } else if (u_blendingMode == BLENDING_MULTIPLY) {
-          return blend(a, max(0.0, a * b), t);
-        } else if (u_blendingMode == BLENDING_LIGHTER) {
-          return blend(a, max(a, b), t);
-        } else if (u_blendingMode == BLENDING_DARKER) {
-          return blend(a, min(a, b), t);
+        if(u_blendingMode==BLENDING_LINEAR){
+          return blend(a,b,1.0-t);
+        } else if(u_blendingMode==BLENDING_ADD){
+          return blend(a, min(1.0,a+b),t);
+        } else if(u_blendingMode==BLENDING_MULTIPLY){
+          return blend(a, max(0.0,a*b),t);
+        } else if(u_blendingMode==BLENDING_LIGHTER){
+          return blend(a, max(a,b),t);
+        } else if(u_blendingMode==BLENDING_DARKER){
+          return blend(a, min(a,b),t);
         } else {
-          return blend(a, b, 1.0 - t);
+          return blend(a,b,1.0-t);
         }
       }
       void main() {
-        if (!u_disable) {
-          vec2 p = vec2(vUV.x * u_width, vUV.y * u_height);
-          vec2 origin = vec2(0.0, 0.0);
-          float aa = (u_radius < 2.5) ? u_radius * 0.5 : 1.25;
-          Cell cell_r = getReferenceCell(p, origin, u_rotateR, u_radius);
-          Cell cell_g = getReferenceCell(p, origin, u_rotateG, u_radius);
-          Cell cell_b = getReferenceCell(p, origin, u_rotateB, u_radius);
+        if(!u_disable){
+          vec2 p = vec2(vUV.x*u_width, vUV.y*u_height);
+          vec2 origin = vec2(0.0,0.0);
+          float aa = (u_radius<2.5)? u_radius*0.5 : 1.25;
+          Cell cell_r = getReferenceCell(p,origin, u_rotateR, u_radius);
+          Cell cell_g = getReferenceCell(p,origin, u_rotateG, u_radius);
+          Cell cell_b = getReferenceCell(p,origin, u_rotateB, u_radius);
           float r = getDotColour(cell_r, p, 0, u_rotateR, aa);
           float g = getDotColour(cell_g, p, 1, u_rotateG, aa);
           float b = getDotColour(cell_b, p, 2, u_rotateB, aa);
@@ -325,7 +346,7 @@ export class VisualizationController {
       }
     `;
     this.halftoneProgram = this.createProgram(halftoneVSSource, halftoneFSSource);
-    if (!this.halftoneProgram) throw new Error("Error creating halftoneProgram");
+    if(!this.halftoneProgram) throw new Error("Error creating halftoneProgram");
     this.halftoneUniforms = {
       inputBuffer: this.gl.getUniformLocation(this.halftoneProgram, "u_inputBuffer"),
       radius: this.gl.getUniformLocation(this.halftoneProgram, "u_radius"),
@@ -347,7 +368,7 @@ export class VisualizationController {
     const shader = this.gl.createShader(type);
     this.gl.shaderSource(shader, source);
     this.gl.compileShader(shader);
-    if (!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
+    if(!this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)){
       console.error("Shader compile error:", this.gl.getShaderInfoLog(shader));
       this.gl.deleteShader(shader);
       return null;
@@ -362,7 +383,7 @@ export class VisualizationController {
     this.gl.attachShader(program, vertexShader);
     this.gl.attachShader(program, fragmentShader);
     this.gl.linkProgram(program);
-    if (!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) {
+    if(!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)){
       console.error("Program link error:", this.gl.getProgramInfoLog(program));
       return null;
     }
@@ -373,11 +394,8 @@ export class VisualizationController {
      Setup Buffers
   ========================================================================== */
   setupBuffers() {
-    // Buffer for nodes (and trails)
     this.nodesBuffer = this.gl.createBuffer();
     this.colorsBuffer = this.gl.createBuffer();
-  
-    // Buffer for full-screen quad (for halftone post-processing)
     const quadVertices = new Float32Array([
       -1, -1,
        1, -1,
@@ -416,16 +434,21 @@ export class VisualizationController {
   
   /* ==========================================================================
      Setup GUI for Debug Controls
+     Additional controls: remove all dots, start animation, spawn delay, and color controls.
   ========================================================================== */
   setupGUI() {
     const gui = new GUI();
+
+    // Remove duplicate panels by calling this only once.
 
     const forcesFolder = gui.addFolder("Forze");
     forcesFolder.add(this.params, "forceCenterStrength", 0, 0.2)
       .name("Center Strength")
       .onChange(newVal => {
-        this.simulation.force("x", d3.forceX(this.config.width / 2).strength(newVal));
-        this.simulation.force("y", d3.forceY(this.config.height / 2).strength(newVal));
+        if (!this.params.grouping) {
+          this.simulation.force("x", d3.forceX(this.config.width / 2).strength(newVal));
+          this.simulation.force("y", d3.forceY(this.config.height / 2).strength(newVal));
+        }
         this.simulation.alpha(1).restart();
       });
     forcesFolder.add(this.params, "forceCollideRadius", 0, 10)
@@ -438,7 +461,19 @@ export class VisualizationController {
     const groupingFolder = gui.addFolder("Grouping");
     groupingFolder.add(this.params, "grouping")
       .name("Group by Supertype")
-      .onChange(newVal => { this.simulation.alpha(1).restart(); });
+      .onChange(newVal => {
+        if (newVal) {
+          // Disable center force when grouping is on.
+          this.prevCenterStrength = this.params.forceCenterStrength;
+          this.simulation.force("x", d3.forceX(this.config.width / 2).strength(0));
+          this.simulation.force("y", d3.forceY(this.config.height / 2).strength(0));
+        } else {
+          // Restore center force.
+          this.simulation.force("x", d3.forceX(this.config.width / 2).strength(this.prevCenterStrength));
+          this.simulation.force("y", d3.forceY(this.config.height / 2).strength(this.prevCenterStrength));
+        }
+        this.simulation.alpha(1).restart();
+      });
     groupingFolder.add(this.params, "groupingStrength", 0, 0.5)
       .name("Grouping Strength")
       .onChange(newVal => { this.simulation.alpha(1).restart(); });
@@ -466,6 +501,11 @@ export class VisualizationController {
         this.simulation.velocityDecay(newVal);
         this.simulation.alpha(1).restart();
       });
+    simulationFolder.add(this.params, "spawnDelay", 50, 1000)
+      .name("Spawn Delay")
+      .onChange(newVal => {
+        this.spawnDelay = newVal;
+      });
   
     const nodesFolder = gui.addFolder("Nodi");
     nodesFolder.add(this.params, "nodeSize", 10, 50)
@@ -479,8 +519,10 @@ export class VisualizationController {
       .name("Trail Length");
     trailsFolder.add(this.params.trail, "opacity", 0, 1)
       .name("Trail Opacity");
-    trailsFolder.add(this.params.trail, "size", 1, 50)
+    trailsFolder.add(this.params.trail, "size", 1, 300)
       .name("Trail Size");
+    trailsFolder.add(this.params.trail, "interval", 1, 10)
+      .name("Trail Interval");
   
     const halftoneFolder = gui.addFolder("Halftone");
     halftoneFolder.add(this.params.halftone, "radius", 0.5, 10);
@@ -493,13 +535,59 @@ export class VisualizationController {
     halftoneFolder.add(this.params.halftone, "blendingMode", { Linear: 1, Multiply: 2, Add: 3, Lighter: 4, Darker: 5 });
     halftoneFolder.add(this.params.halftone, "greyscale");
     halftoneFolder.add(this.params.halftone, "disable");
+  
+    // Additional UI controls.
+    const uiFolder = gui.addFolder("UI Controls");
+    uiFolder.add({ removeDots: () => { 
+      this.activeNodes = [];
+      this.trails = [];
+      this.simulation.alpha(1).restart();
+    }}, "removeDots").name("Remove All Dots");
+    uiFolder.add({ startAnimation: () => { 
+      this.activeNodes = [];
+      this.trails = [];
+      this.currentSpawnIndex = 0;
+      this.lastSpawnTime = 0;
+      this.simulation.alpha(1).restart();
+    }}, "startAnimation").name("Start Animation");
+  
+    // Color controls: one folder for category colors and one for background.
+    // For category colors, we assume that the supertype keys are known (or compute them from the nodes).
+    // Here we add controls only if nodes have been loaded.
+    const colorsFolder = gui.addFolder("Colors");
+    // If nodes exist, build a control per category.
+    const supertypes = Array.from(new Set(this.nodes.map(n => n.supertype)));
+    supertypes.forEach(s => {
+      // Use a dummy object to hold the color value.
+      const colorControl = { color: this.config.colors.superTypeColors(s) };
+      colorsFolder.addColor(colorControl, "color").name(s).onChange(newColor => {
+        // Update the color scale for that category.
+        // For simplicity, we rebuild the color scale range for this category.
+        // (In a production app you might want a more robust mapping.)
+        this.config.colors.superTypeColors.range(
+          this.config.colors.superTypeColors.range().map(c => {
+            return (c === this.config.colors.superTypeColors(s)) ? newColor : c;
+          })
+        );
+        // Also update node colors for affected nodes.
+        this.nodes.forEach(node => {
+          if(node.supertype === s) {
+            node.color = newColor;
+          }
+        });
+      });
+    });
+    // Background color control:
+    const bgControl = { background: "#ffffff" };
+    uiFolder.addColor(bgControl, "background").name("Background").onChange(newColor => {
+      this.canvas.style.background = newColor;
+    });
   }
   
   /* ==========================================================================
      Data Setup and Simulation Start
   ========================================================================== */
   setData(dataset) {
-    // Map dataset to node objects and compute unique supertypes.
     this.nodes = dataset.map(init => ({
       ...init,
       x: this.config.width / 2 + (Math.random() - 0.5) * 100,
@@ -521,7 +609,6 @@ export class VisualizationController {
       };
     });
   
-    // Pass the full dataset to the simulation
     this.simulation.nodes(this.nodes);
   }
   
@@ -529,13 +616,11 @@ export class VisualizationController {
      Update Node Positions on Simulation Tick
   ========================================================================== */
   updateNodePositions() {
-    // For each active node, update its position and add a trail point.
+    this.tickCount++;
     this.activeNodes.forEach((node, i) => {
-      // Keep nodes within bounds
       node.x = Math.max(50, Math.min(this.canvas.width - 50, node.x));
       node.y = Math.max(50, Math.min(this.canvas.height - 50, node.y));
   
-      // Update arrays for node positions and colors
       this.nodePositions[i * 2] = node.x;
       this.nodePositions[i * 2 + 1] = node.y;
       const color = d3.color(node.color);
@@ -544,35 +629,34 @@ export class VisualizationController {
       this.nodeColors[i * 4 + 2] = color.b / 255;
       this.nodeColors[i * 4 + 3] = 1.0;
   
-      // Add a trail point with the same color as the node
-      this.trails.push({ x: node.x, y: node.y, age: 0, color: node.color });
+      if (this.tickCount % this.params.trail.interval === 0) {
+        this.trails.push({ x: node.x, y: node.y, age: 0, color: node.color });
+      }
     });
-  
-    // Update trail ages and remove expired ones
     this.trails.forEach(trail => { trail.age++; });
     this.trails = this.trails.filter(trail => trail.age < this.params.trail.length);
   }
   
   /* ==========================================================================
-     Draw Trails using the nodes shader
+     Draw Trails using the nodes shader with radial gradient.
   ========================================================================== */
   drawTrails() {
     const gl = this.gl;
     const n = this.trails.length;
-    if (n === 0) return;
+    if(n === 0) return;
   
     const trailPositions = new Float32Array(n * 2);
     const trailColors = new Float32Array(n * 4);
-    for (let i = 0; i < n; i++) {
+    for(let i=0; i<n; i++){
       const t = this.trails[i];
-      trailPositions[i * 2] = t.x;
-      trailPositions[i * 2 + 1] = t.y;
+      trailPositions[i*2] = t.x;
+      trailPositions[i*2+1] = t.y;
       const col = d3.color(t.color);
-      const alpha = this.params.trail.opacity * (1 - t.age / this.params.trail.length);
-      trailColors[i * 4] = col.r / 255;
-      trailColors[i * 4 + 1] = col.g / 255;
-      trailColors[i * 4 + 2] = col.b / 255;
-      trailColors[i * 4 + 3] = alpha;
+      const alpha = this.params.trail.opacity * (1 - t.age/this.params.trail.length);
+      trailColors[i*4] = col.r/255;
+      trailColors[i*4+1] = col.g/255;
+      trailColors[i*4+2] = col.b/255;
+      trailColors[i*4+3] = alpha;
     }
   
     gl.bindBuffer(gl.ARRAY_BUFFER, this.nodesBuffer);
@@ -585,28 +669,28 @@ export class VisualizationController {
     gl.enableVertexAttribArray(this.nodesAttribLocations.color);
     gl.vertexAttribPointer(this.nodesAttribLocations.color, 4, gl.FLOAT, false, 0, 0);
   
+    // Set point size for trails and indicate trail mode.
     gl.uniform1f(this.nodesUniformLocations.pointSize, this.params.trail.size);
+    gl.uniform1i(this.nodesUniformLocations.isTrail, true);
     gl.drawArrays(gl.POINTS, 0, n);
   }
   
   /* ==========================================================================
      Render (Three Passes):
-       1) Render trails
+       1) Render trails (drawn first so they appear underneath)
        2) Render nodes on top
        3) Apply halftone effect
   ========================================================================== */
   render(timestamp) {
     const gl = this.gl;
   
-    // Incremental spawn of nodes
-    if (timestamp - this.lastSpawnTime > this.spawnDelay && this.currentSpawnIndex < Math.min(this.maxNodes, this.nodes.length)) {
+    if(timestamp - this.lastSpawnTime > this.spawnDelay && this.currentSpawnIndex < Math.min(this.maxNodes, this.nodes.length)){
       this.activeNodes.push(this.nodes[this.currentSpawnIndex]);
       this.currentSpawnIndex++;
       this.lastSpawnTime = timestamp;
       this.simulation.alpha(1).restart();
     }
   
-    // --- Bind offscreen framebuffer ---
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.offscreenFBO);
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
     gl.clearColor(1, 1, 1, 1);
@@ -615,10 +699,10 @@ export class VisualizationController {
     gl.useProgram(this.nodesProgram);
     gl.uniform2f(this.nodesUniformLocations.resolution, this.canvas.width, this.canvas.height);
   
-    // First, draw trails (so they appear under nodes)
+    // Draw trails first.
     this.drawTrails();
   
-    // Then, update node buffers and draw nodes on top
+    // Then draw nodes.
     gl.bindBuffer(gl.ARRAY_BUFFER, this.nodesBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, this.nodePositions, gl.DYNAMIC_DRAW);
     gl.enableVertexAttribArray(this.nodesAttribLocations.position);
@@ -630,6 +714,7 @@ export class VisualizationController {
     gl.vertexAttribPointer(this.nodesAttribLocations.color, 4, gl.FLOAT, false, 0, 0);
   
     gl.uniform1f(this.nodesUniformLocations.pointSize, this.params.nodeSize);
+    gl.uniform1i(this.nodesUniformLocations.isTrail, false);
     gl.drawArrays(gl.POINTS, 0, this.activeNodes.length);
   
     // --- Pass 3: Render full-screen quad with halftone effect ---

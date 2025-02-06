@@ -10,9 +10,8 @@ const config = {
   colors: {
     superTypeColors: d3.scaleOrdinal()
       .range([
-        '#FF6B6B', '#4ECDC4', '#45B7D1', 
-        '#96CEB4', '#FFEEAD', '#FF9F1C',
-        '#2EC4B6', '#E71D36', '#011627'
+        '#559A69', '#1CD4CE', '#BB74EA', '#77247F',
+        '#2A4E90', '#E77E9B', '#438FB5', '#D21F75'
       ].map(color => d3.color(color).toString()))
   }
 };
