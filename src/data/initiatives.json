@@ -1,0 +1,563 @@
+[
+    {
+      "id": 1,
+      "name": "300 visite specialistiche",
+      "supertype": "Zambon",
+      "type": "Benvivere",
+      "whatSimplified": "Raddoppio giornate di prevenzione (300 visite)",
+      "tags": ["#prevenzione", "#salute"]
+    },
+    {
+      "id": 2,
+      "name": "Summer Camp esteso",
+      "supertype": "Zambon",
+      "type": "Benvivere",
+      "whatSimplified": "Summer Camp di 6 settimane in campus",
+      "tags": ["#camp", "#giovani"]
+    },
+    {
+      "id": 3,
+      "name": "Donazione sangue aziendale",
+      "supertype": "Zambon",
+      "type": "Benvivere",
+      "whatSimplified": "3 giornate di donazione con AVIS Milano",
+      "tags": ["#donazione", "#sangue"]
+    },
+    {
+      "id": 4,
+      "name": "Webinar salute globale",
+      "supertype": "Zambon",
+      "type": "Benvivere",
+      "whatSimplified": "3 webinar su salute di uomo e donna",
+      "tags": ["#webinar", "#salute"]
+    },
+    {
+      "id": 5,
+      "name": "Tornei sportivi",
+      "supertype": "Zambon",
+      "type": "Benvivere",
+      "whatSimplified": "Tornei sportivi nelle sedi aziendali",
+      "tags": ["#sport", "#team"]
+    },
+    {
+      "id": 6,
+      "name": "Cycle di incontri Feelosophy",
+      "supertype": "Zambon",
+      "type": "Benvivere",
+      "whatSimplified": "10 incontri guidati da Ventimiglia",
+      "tags": ["#incontri", "#cultura"]
+    },
+    {
+      "id": 7,
+      "name": "Training & Development",
+      "supertype": "Zambon",
+      "type": "People Care",
+      "whatSimplified": "Programma di formazione e sviluppo",
+      "tags": ["#training", "#sviluppo"]
+    },
+    {
+      "id": 8,
+      "name": "Feedback Training",
+      "supertype": "Zambon",
+      "type": "People Care",
+      "whatSimplified": "Sessione di feedback e formazione",
+      "tags": ["#feedback", "#formazione"]
+    },
+    {
+      "id": 9,
+      "name": "Agile Transformation",
+      "supertype": "Zambon",
+      "type": "People Care",
+      "whatSimplified": "Processo di trasformazione agile",
+      "tags": ["#agile", "#innovazione"]
+    },
+    {
+      "id": 10,
+      "name": "Performance Management",
+      "supertype": "Zambon",
+      "type": "People Care",
+      "whatSimplified": "Gestione delle performance aziendali",
+      "tags": ["#performance", "#HR"]
+    },
+    {
+      "id": 11,
+      "name": "ZGEN",
+      "supertype": "Zambon",
+      "type": "People Care",
+      "whatSimplified": "Iniziativa ZGEN per giovani talenti",
+      "tags": ["#giovani", "#talento"]
+    },
+    {
+      "id": 12,
+      "name": "Young Energies",
+      "supertype": "Zambon",
+      "type": "People Care",
+      "whatSimplified": "Programma per energizzare i giovani",
+      "tags": ["#giovani", "#energia"]
+    },
+    {
+      "id": 13,
+      "name": "IPA Academy",
+      "supertype": "Zambon",
+      "type": "People Care",
+      "whatSimplified": "Industrial People Academy per formazione",
+      "tags": ["#formazione", "#sviluppo"]
+    },
+    {
+      "id": 14,
+      "name": "Programma NCFB",
+      "supertype": "Zambon Pharma",
+      "type": "Good Science",
+      "whatSimplified": "Programma NCFB per ricerca scientifica",
+      "tags": ["#ricerca", "#scienza"]
+    },
+    {
+      "id": 15,
+      "name": "Programma BOS",
+      "supertype": "Zambon Pharma",
+      "type": "Good Science",
+      "whatSimplified": "Programma BOS per innovazione scientifica",
+      "tags": ["#innovazione", "#scienza"]
+    },
+    {
+      "id": 16,
+      "name": "Studio SUCCESS",
+      "supertype": "Zambon Pharma",
+      "type": "Good Science",
+      "whatSimplified": "Studio osservazionale europeo SUCCESS",
+      "tags": ["#studio", "#europeo"]
+    },
+    {
+      "id": 17,
+      "name": "Studi IITs",
+      "supertype": "Zambon Pharma",
+      "type": "Good Science",
+      "whatSimplified": "Studi indipendenti IITs",
+      "tags": ["#studi", "#clinico"]
+    },
+    {
+      "id": 18,
+      "name": "EAN Simposio",
+      "supertype": "Zambon Pharma",
+      "type": "Good Science",
+      "whatSimplified": "Simposio all’EAN con booth dedicato",
+      "tags": ["#congresso", "#EAN"]
+    },
+    {
+      "id": 19,
+      "name": "Patients Communication",
+      "supertype": "Zambon Pharma",
+      "type": "Good Science",
+      "whatSimplified": "Progetto di comunicazione pazienti-medici",
+      "tags": ["#comunicazione", "#pazienti"]
+    },
+    {
+      "id": 20,
+      "name": "Autorizzazione Xadago",
+      "supertype": "Zambon Pharma",
+      "type": "Good Science",
+      "whatSimplified": "Autorizzazione per il farmaco Xadago",
+      "tags": ["#farmaci", "#autorizzazione"]
+    },
+    {
+      "id": 21,
+      "name": "Diffusione dati Fluimucil",
+      "supertype": "Zambon Pharma",
+      "type": "Good Science",
+      "whatSimplified": "Diffusione dati su Fluimucil (NAC)",
+      "tags": ["#dati", "#scienza"]
+    },
+    {
+      "id": 22,
+      "name": "Trial ATTACK",
+      "supertype": "Zambon Pharma",
+      "type": "Good Science",
+      "whatSimplified": "Arruolamento pazienti nel trial ATTACK",
+      "tags": ["#trial", "#clinico"]
+    },
+    {
+      "id": 23,
+      "name": "Studio PRECISIONS",
+      "supertype": "Zambon Pharma",
+      "type": "Good Science",
+      "whatSimplified": "Arruolamento in studio PRECISIONS",
+      "tags": ["#studio", "#clinico"]
+    },
+    {
+      "id": 24,
+      "name": "Advisory Board Fosfomicina",
+      "supertype": "Zambon Pharma",
+      "type": "Good Science",
+      "whatSimplified": "Board per fosfomicina trometamolo",
+      "tags": ["#board", "#scienza"]
+    },
+    {
+      "id": 25,
+      "name": "Advisory Board Ibuprofene",
+      "supertype": "Zambon Pharma",
+      "type": "Good Science",
+      "whatSimplified": "Board su ibuprofene arginina",
+      "tags": ["#board", "#scienza"]
+    },
+    {
+      "id": 26,
+      "name": "Review Fosfomicina",
+      "supertype": "Zambon Pharma",
+      "type": "Good Science",
+      "whatSimplified": "Review sull'uso di fosfomicina per cistiti",
+      "tags": ["#review", "#clinico"]
+    },
+    {
+      "id": 27,
+      "name": "Efficientamento produttivo",
+      "supertype": "Zambon Pharma",
+      "type": "Industrial Business Operations",
+      "whatSimplified": "Progetti per migliorare la produzione",
+      "tags": ["#efficienza", "#produzione"]
+    },
+    {
+      "id": 28,
+      "name": "Supply Chain Integration",
+      "supertype": "Zambon Pharma",
+      "type": "Industrial Business Operations",
+      "whatSimplified": "Integrazione della supply chain",
+      "tags": ["#supplychain", "#logistica"]
+    },
+    {
+      "id": 29,
+      "name": "Confezionamento Riluzolo",
+      "supertype": "Zambon Pharma",
+      "type": "Industrial Business Operations",
+      "whatSimplified": "Confezionamento secondario per Riluzolo",
+      "tags": ["#produzione", "#confezionamento"]
+    },
+    {
+      "id": 30,
+      "name": "Zambon Production System",
+      "supertype": "Zambon Pharma",
+      "type": "Industrial Business Operations",
+      "whatSimplified": "Sistema di produzione Zambon",
+      "tags": ["#produzione", "#sistema"]
+    },
+    {
+      "id": 31,
+      "name": "Progetto 3B",
+      "supertype": "Zambon Pharma",
+      "type": "Industrial Business Operations",
+      "whatSimplified": "Progetto 3B per innovazione",
+      "tags": ["#progetto", "#innovazione"]
+    },
+    {
+      "id": 32,
+      "name": "Sostenibilità SUPSI",
+      "supertype": "Zambon Pharma",
+      "type": "Industrial Business Operations",
+      "whatSimplified": "Progetto di sostenibilità con SUPSI",
+      "tags": ["#sostenibilità", "#SUPSI"]
+    },
+    {
+      "id": 33,
+      "name": "Attrezzature e sachet",
+      "supertype": "Zambon Pharma",
+      "type": "Industrial Business Operations",
+      "whatSimplified": "Nuove attrezzature e linea sachet",
+      "tags": ["#innovazione", "#produzione"]
+    },
+    {
+      "id": 34,
+      "name": "Investimenti a Haikou",
+      "supertype": "Zambon Pharma",
+      "type": "Industrial Business Operations",
+      "whatSimplified": "Investimenti nello stabilimento di Haikou",
+      "tags": ["#investimenti", "#internazionale"]
+    },
+    {
+      "id": 35,
+      "name": "Reingegnerizzazione e ristrutturazione",
+      "supertype": "Zambon Pharma",
+      "type": "Industrial Business Operations",
+      "whatSimplified": "Reingegnerizzazione e ristrutturazione uffici",
+      "tags": ["#ristrutturazione", "#produzione"]
+    },
+    {
+      "id": 36,
+      "name": "Trasferimento tecnologico",
+      "supertype": "Zambon Pharma",
+      "type": "Industrial Business Operations",
+      "whatSimplified": "Trasferimento tecnologico da Sanofi a Unithe",
+      "tags": ["#tecnologia", "#innovazione"]
+    },
+    {
+      "id": 37,
+      "name": "Commercializzazione Emylif",
+      "supertype": "Zambon Biotech",
+      "type": "Product Innovation",
+      "whatSimplified": "Lancio e vendita di Emylif",
+      "tags": ["#prodotti", "#innovazione"]
+    },
+    {
+      "id": 38,
+      "name": "Scouting nuovi asset",
+      "supertype": "Zambon Biotech",
+      "type": "Valutazione di nuovi prodotti",
+      "whatSimplified": "Valutazione di asset nei settori SNC e respiratorio",
+      "tags": ["#scouting", "#innovazione"]
+    },
+    {
+      "id": 39,
+      "name": "Offerte non vincolanti",
+      "supertype": "Zambon Biotech",
+      "type": "Valutazione di nuovi prodotti",
+      "whatSimplified": "Offerte per asset rari",
+      "tags": ["#offerte", "#ricerca"]
+    },
+    {
+      "id": 40,
+      "name": "Trattative per Parkinson",
+      "supertype": "Zambon Biotech",
+      "type": "Valutazione di nuovi prodotti",
+      "whatSimplified": "Trattative per asset Fase III (Parkinson)",
+      "tags": ["#trattative", "#clinico"]
+    },
+    {
+      "id": 41,
+      "name": "Valutazione asset",
+      "supertype": "Zambon Biotech",
+      "type": "Valutazione di nuovi prodotti",
+      "whatSimplified": "Valutazione di oltre 100 asset",
+      "tags": ["#valutazione", "#asset"]
+    },
+    {
+      "id": 42,
+      "name": "Colloqui riservati",
+      "supertype": "Zambon Biotech",
+      "type": "Valutazione di nuovi prodotti",
+      "whatSimplified": "Incontri con 20+ aziende",
+      "tags": ["#colloqui", "#business"]
+    },
+    {
+      "id": 43,
+      "name": "Visibilità internazionale",
+      "supertype": "Zambon Biotech",
+      "type": "Valutazione di nuovi prodotti",
+      "whatSimplified": "Partecipazione a conferenze internazionali",
+      "tags": ["#internazionale", "#conference"]
+    },
+    {
+      "id": 44,
+      "name": "Coinvolgimento esperti",
+      "supertype": "Zambon Biotech",
+      "type": "Coinvolgimento di esperti",
+      "whatSimplified": "Coinvolgimento di esperti nel settore",
+      "tags": ["#esperti", "#networking"]
+    },
+    {
+      "id": 45,
+      "name": "Filtro essiccatore COF2Y",
+      "supertype": "Zambon Chemicals",
+      "type": "Investimenti",
+      "whatSimplified": "Investimento per filtro essiccatore e finissaggio",
+      "tags": ["#investimenti", "#produzione"]
+    },
+    {
+      "id": 46,
+      "name": "Attrezzature pilota",
+      "supertype": "Zambon Chemicals",
+      "type": "Investimenti",
+      "whatSimplified": "Nuove attrezzature per impianto pilota e laboratori",
+      "tags": ["#innovazione", "#laboratorio"]
+    },
+    {
+      "id": 47,
+      "name": "Ingegneria di dettaglio",
+      "supertype": "Zambon Chemicals",
+      "type": "Investimenti",
+      "whatSimplified": "Progetto per nuovi laboratori e uffici",
+      "tags": ["#edilizia", "#investimenti"]
+    },
+    {
+      "id": 48,
+      "name": "Investimenti IT",
+      "supertype": "Zambon Chemicals",
+      "type": "Investimenti",
+      "whatSimplified": "Aggiornamento infrastruttura IT e sicurezza",
+      "tags": ["#IT", "#sicurezza"]
+    },
+    {
+      "id": 49,
+      "name": "Investimenti ordinari",
+      "supertype": "Zambon Chemicals",
+      "type": "Investimenti",
+      "whatSimplified": "Investimenti per efficienza e conformità GMP",
+      "tags": ["#efficienza", "#GMP"]
+    },
+    {
+      "id": 50,
+      "name": "Le nuove torri",
+      "supertype": "Openzone",
+      "type": "Openzone",
+      "whatSimplified": "Nuove torri per Openzone",
+      "tags": ["#architettura", "#innovazione"]
+    },
+    {
+      "id": 51,
+      "name": "Open Cafe",
+      "supertype": "Openzone",
+      "type": "Openzone",
+      "whatSimplified": "Caffetteria Open Cafe",
+      "tags": ["#caffetteria", "#comunità"]
+    },
+    {
+      "id": 52,
+      "name": "Zoner",
+      "supertype": "Openzone",
+      "type": "Openzone",
+      "whatSimplified": "Servizio Zoner",
+      "tags": ["#servizi", "#innovazione"]
+    },
+    {
+      "id": 53,
+      "name": "Certificazione B Corp",
+      "supertype": "Openzone",
+      "type": "Openzone",
+      "whatSimplified": "Certificazione B Corp per sostenibilità",
+      "tags": ["#sostenibilità", "#certificazione"]
+    },
+    {
+      "id": 54,
+      "name": "Progetto MyVoice",
+      "supertype": "Openzone",
+      "type": "Openzone",
+      "whatSimplified": "Iniziativa MyVoice per comunicazione",
+      "tags": ["#comunicazione", "#innovazione"]
+    },
+    {
+      "id": 55,
+      "name": "Donazione di sangue",
+      "supertype": "Openzone",
+      "type": "Openzone",
+      "whatSimplified": "Evento di donazione di sangue",
+      "tags": ["#donazione", "#sangue"]
+    },
+    {
+      "id": 56,
+      "name": "Founders Fund",
+      "supertype": "Zambon Open Venture",
+      "type": "Corporate Venture",
+      "whatSimplified": "Adesione a Italian Founders Fund",
+      "tags": ["#startup", "#venture"]
+    },
+    {
+      "id": 57,
+      "name": "Hyivy Health",
+      "supertype": "Zambon Open Venture",
+      "type": "Open Accelerator",
+      "whatSimplified": "Startup innovativa Hyivy Health",
+      "tags": ["#startup", "#innovazione"]
+    },
+    {
+      "id": 58,
+      "name": "Call for Women's Health",
+      "supertype": "Zambon Open Venture",
+      "type": "Open Accelerator",
+      "whatSimplified": "Chiamata per innovazioni nella salute femminile",
+      "tags": ["#women", "#innovazione"]
+    },
+    {
+      "id": 59,
+      "name": "VITA Accelerator",
+      "supertype": "Zambon Open Venture",
+      "type": "Open Accelerator",
+      "whatSimplified": "Acceleratore VITA per startup",
+      "tags": ["#accelerator", "#startup"]
+    },
+    {
+      "id": 60,
+      "name": "AttivaCare",
+      "supertype": "ItaliAssistenza",
+      "type": "Careapt",
+      "whatSimplified": "Soluzione AttivaCare per assistenza",
+      "tags": ["#care", "#innovazione"]
+    },
+    {
+      "id": 61,
+      "name": "ParkinsonCare Webinar",
+      "supertype": "ItaliAssistenza",
+      "type": "Careapt",
+      "whatSimplified": "Webinar dedicato a ParkinsonCare",
+      "tags": ["#webinar", "#salute"]
+    },
+    {
+      "id": 62,
+      "name": "Appuntamenti Salute",
+      "supertype": "Fondazione Zoe",
+      "type": "Fondazione Zoe",
+      "whatSimplified": "Iniziativa per appuntamenti sulla salute",
+      "tags": ["#salute", "#community"]
+    },
+    {
+      "id": 63,
+      "name": "Workshop Futuro",
+      "supertype": "Fondazione Zoe",
+      "type": "Fondazione Zoe",
+      "whatSimplified": "Workshop sul futuro della salute",
+      "tags": ["#workshop", "#innovazione"]
+    },
+    {
+      "id": 64,
+      "name": "Orizzonti Salute",
+      "supertype": "Fondazione Zoe",
+      "type": "Fondazione Zoe",
+      "whatSimplified": "Progetto One Health per salute circolare",
+      "tags": ["#onehealth", "#circolare"]
+    },
+    {
+      "id": 65,
+      "name": "One Health",
+      "supertype": "Fondazione Zoe",
+      "type": "Fondazione Zoe",
+      "whatSimplified": "Iniziativa One Health per salute circolare",
+      "tags": ["#onehealth", "#salute"]
+    },
+    {
+      "id": 66,
+      "name": "Settimana del Cervello",
+      "supertype": "Fondazione Zoe",
+      "type": "Fondazione Zoe",
+      "whatSimplified": "Evento dedicato al cervello",
+      "tags": ["#cervello", "#evento"]
+    },
+    {
+      "id": 67,
+      "name": "Il Respiro",
+      "supertype": "Fondazione Zoe",
+      "type": "Fondazione Zoe",
+      "whatSimplified": "Progetto Il Respiro di Oxy.gen",
+      "tags": ["#respiro", "#innovazione"]
+    },
+    {
+      "id": 68,
+      "name": "Home Care Parkinson",
+      "supertype": "Fondazione Zoe",
+      "type": "Fondazione Zoe",
+      "whatSimplified": "Design per Home Care in Parkinson",
+      "tags": ["#homecare", "#parkinson"]
+    },
+    {
+      "id": 69,
+      "name": "Human Touch Academy",
+      "supertype": "Fondazione Zoe",
+      "type": "Fondazione Zoe",
+      "whatSimplified": "Academy per formazione in salute",
+      "tags": ["#academy", "#formazione"]
+    },
+    {
+      "id": 70,
+      "name": "Resilio",
+      "supertype": "Fondazione Zoe",
+      "type": "Fondazione Zoe",
+      "whatSimplified": "Iniziativa Resilio per resilienza",
+      "tags": ["#resilienza", "#innovazione"]
+    }
+  ]
+  
