@@ -1,17 +1,19 @@
-import React from 'react'
-import { Uniform } from 'three'
-import { BlendFunction, Effect, EffectAttribute } from 'postprocessing'
-import { wrapEffect } from './util'
-import { EffectComposer } from '@react-three/postprocessing'
-import { useControls } from 'leva'
-import { useEffect } from 'react'
+// src/halftone.js
+import React from 'react';
+import { Uniform } from 'three';
+import { BlendFunction, Effect, EffectAttribute } from 'postprocessing';
+import { wrapEffect } from './util';
+import { EffectComposer } from '@react-three/postprocessing';
+import { useControls } from 'leva';
+import { useEffect } from 'react';
 
 const vertexShader = `
 varying vec2 vUV;
 void mainSupport(const in vec2 uv) {
   vUV = uv;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}`
+}
+`;
 
 const HalftoneShader = {
   fragmentShader: `
@@ -129,7 +131,7 @@ const HalftoneShader = {
     res = clamp( res, 0.0, 1.0 );
     return res;
   }
-  struct Cell getReferenceCell( vec2 p, vec2 origin, float grid_angle, float step ) {
+  Cell getReferenceCell( vec2 p, vec2 origin, float grid_angle, float step ) {
     Cell c;
     vec2 n = vec2( cos( grid_angle ), sin( grid_angle ) );
     float threshold = step * 0.5;
@@ -188,8 +190,9 @@ const HalftoneShader = {
     } else {
       outputColor = texture2D( inputBuffer, vUV );
     }
-  }`
-}
+  }
+  `
+};
 
 export class HalftoneEffect extends Effect {
   constructor({
@@ -227,40 +230,40 @@ export class HalftoneEffect extends Effect {
         ['greyscale', new Uniform(greyscale)],
         ['disable', new Uniform(disable)]
       ])
-    })
+    });
   }
 }
 
-const Halftone = wrapEffect(HalftoneEffect)
+const Halftone = wrapEffect(HalftoneEffect);
 
 function HalftoneEffects() {
   const { height } = useControls({
     height: { value: 130, min: 0, max: 200, step: 0.1 }
-  })
+  });
   const { width } = useControls({
     width: { value: 130, min: 0, max: 200, step: 0.1 }
-  })
+  });
   const { shape } = useControls({
     shape: { value: 1, min: 0, max: 4, step: 1 }
-  })
+  });
   const { radius } = useControls({
     radius: { value: 0.7, min: 0.1, max: 4, step: 0.1 }
-  })
+  });
   const { rotateR } = useControls({
     rotateR: { value: 12, min: 1, max: 30, step: 0.1 }
-  })
+  });
   const { rotateG } = useControls({
     rotateG: { value: 12, min: 1, max: 30, step: 0.1 }
-  })
+  });
   const { rotateB } = useControls({
     rotateB: { value: 12, min: 1, max: 30, step: 0.1 }
-  })
+  });
   const { scatter } = useControls({
     scatter: { value: 0, min: 0, max: 5, step: 0.1 }
-  })
-  const { disable } = useControls({ disable: false })
-  const { greyscale } = useControls({ greyscale: false })
-
+  });
+  const { disable } = useControls({ disable: false });
+  const { greyscale } = useControls({ greyscale: false });
+  
   return (
     <EffectComposer>
       <Halftone
@@ -276,7 +279,7 @@ function HalftoneEffects() {
         scatter={scatter}
       />
     </EffectComposer>
-  )
+  );
 }
 
-export default HalftoneEffects
+export default HalftoneEffects;

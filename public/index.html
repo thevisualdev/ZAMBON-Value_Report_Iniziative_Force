@@ -1,40 +1,15 @@
 <!DOCTYPE html>
 <html lang="it">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Value Report Demo</title>
-  <link rel="stylesheet" href="src/styles/main.css">
-</head>
-<body>
-  <div id="visualization-container">
-    <svg id="main-svg"></svg>
-    <canvas id="background-canvas"></canvas>
-  </div>
-
-  <!-- Elemento tooltip per la visualizzazione al passaggio del mouse -->
-  <div id="tooltip"></div>
-  
-  <div id="controls">
-    <button id="group-by-supertype">Raggruppa per Supertype</button>
-  </div>
-
-  <div id="modal" class="modal hidden">
-    <div class="modal-content">
-      <span class="close-button">&times;</span>
-      <div id="initiative-details"></div>
-    </div>
-  </div>
-
-  <!-- Librerie -->
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/6.5.8/browser/pixi.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi-filters/4.2.2/pixi-filters.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://unpkg.com/postprocessing@6.28.7/build/postprocessing.min.js"></script>
-
-  <!-- Applicazione -->
-  <script type="module" src="src/js/main.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Halftone Effect R3F</title>
+    <link rel="stylesheet" href="%PUBLIC_URL%/styles/main.css" />
+    <!-- Librerie esterne: assicurati che queste righe siano incluse PRIMA del bundle -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/postprocessing@6.28.7/build/postprocessing.min.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
 </html>
