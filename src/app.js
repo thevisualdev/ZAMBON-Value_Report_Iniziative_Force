@@ -3,6 +3,10 @@ import * as d3 from 'd3';
 import dat from 'dat.gui';
 import { VisualizationController } from './js/simulation';
 import './styles/main.css';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import LandingPage from './components/LandingPage';
+import ImageEditor from './components/ImageEditor';
+import Visualization from './components/Visualization';
 
 const config = {
   width: window.innerWidth,
@@ -15,6 +19,23 @@ const config = {
       ].map(color => d3.color(color).toString()))
   }
 };
+
+// Helper function to clean up GUI
+const cleanupGUI = () => {
+  const existingGUIs = document.querySelectorAll('.dg.ac');
+  existingGUIs.forEach(gui => gui.remove());
+};
+
+// Route change handler component
+function RouteChangeHandler() {
+  const location = useLocation();
+  
+  useEffect(() => {
+    cleanupGUI();
+  }, [location]);
+  
+  return null;
+}
 
 function App() {
   const canvasRef = useRef(null);
@@ -56,17 +77,31 @@ function App() {
       }
     };
   }, []);
-  
+
+  // Clean up any existing GUI on mount
+  useEffect(() => {
+    cleanupGUI();
+    return () => cleanupGUI();
+  }, []);
+
   return (
-    <div id="visualization-container">
-      <canvas ref={canvasRef} />
-      <div id="modal" className="modal">
-        <div className="modal-content">
-          <button className="close-button">&times;</button>
-          <div id="initiative-details"></div>
+    <Router>
+      <RouteChangeHandler />
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/visualization" element={<Visualization />} />
+        <Route path="/editor" element={<ImageEditor />} />
+      </Routes>
+      <div id="visualization-container">
+        <canvas ref={canvasRef} />
+        <div id="modal" className="modal">
+          <div className="modal-content">
+            <button className="close-button">&times;</button>
+            <div id="initiative-details"></div>
+          </div>
         </div>
       </div>
-    </div>
+    </Router>
   );
 }
 
