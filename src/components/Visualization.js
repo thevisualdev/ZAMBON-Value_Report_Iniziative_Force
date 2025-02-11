@@ -11,7 +11,7 @@ const config = {
       .range([
         '#559A69', '#E83D30', '#BB74EA', '#77247F',
         '#2A4E90', '#E77E9B', '#438FB5', '#D21F75'
-      ].map(color => d3.color(color).toString()))
+      ])
   }
 };
 
@@ -43,8 +43,10 @@ function Visualization() {
         visualizationRef.current = visualization;
         
         const response = await fetch('/initiatives.json');
+        if (!response.ok) {
+          throw new Error('Failed to fetch initiatives data');
+        }
         const initiatives = await response.json();
-        
         visualization.setData(initiatives);
 
         // Force GUI to be visible and properly positioned

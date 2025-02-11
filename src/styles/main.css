@@ -108,7 +108,7 @@ canvas {
     z-index: 9999 !important;
     display: block !important;
     position: fixed !important;
-    top: 80px !important; /* Below nav bar */
+    top: 80px !important;   /* Adjusted to appear below the navigation bar */
     right: 20px !important;
     background: rgba(0, 0, 0, 0.7) !important;
 }
