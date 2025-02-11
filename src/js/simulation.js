@@ -7,6 +7,9 @@ export class VisualizationController {
   constructor(canvas, config) {
     this.canvas = canvas;
     this.config = config;
+    // NOTE: Make sure that config.colors includes a "superTypeColors" property,
+    // which is a D3 scale with a fixed domain and range.
+    
     this.gl = canvas.getContext('webgl2');
     if (!this.gl) {
       console.error('WebGL2 not supported');
@@ -68,6 +71,9 @@ export class VisualizationController {
     // Group centers (computed later in setData)
     this.groupCenters = {};
 
+    // Initialize the color mapping for supertypes.
+    this.supertypeColors = {};
+
     // Set up D3 simulation with continuous centering, collision, and custom grouping.
     this.simulation = d3.forceSimulation()
       .force("x", d3.forceX(config.width / 2).strength(this.params.forceCenterStrength))
@@ -87,11 +93,13 @@ export class VisualizationController {
     this.initPrograms();
     this.setupBuffers();
     this.initFramebuffer();
+
+    // Setup GUI only once in the constructor.
     this.setupGUI();
 
     // Bind animate and start the loop.
     this.animate = this.animate.bind(this);
-    requestAnimationFrame(this.animate);
+    this.animationFrameId = requestAnimationFrame(this.animate);
   }
 
   /* ==========================================================================
@@ -419,7 +427,8 @@ export class VisualizationController {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.canvas.width, this.canvas.height,
                   0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   
     this.offscreenDepth = gl.createRenderbuffer();
     gl.bindRenderbuffer(gl.RENDERBUFFER, this.offscreenDepth);
@@ -587,37 +596,48 @@ export class VisualizationController {
   /* ==========================================================================
      Data Setup and Simulation Start
   ========================================================================== */
-  setData(dataset) {
-    this.nodes = dataset.map(init => ({
-      ...init,
-      x: this.config.width / 2 + (Math.random() - 0.5) * 100,
-      y: this.config.height / 2 + (Math.random() - 0.5) * 100,
-      radius: this.params.nodeSize,
-      color: this.config.colors.superTypeColors(init.supertype)
+  setData(data) {
+    // Create nodes from the incoming data.
+    // You can adjust this mapping as needed to include default x, y, radius, and color values.
+    this.nodes = data.map(d => ({
+      ...d,
+      x: Math.random() * this.canvas.width, // random starting x-position
+      y: Math.random() * this.canvas.height, // random starting y-position
+      radius: d.radius || 5,                 // default radius if not provided
+      color: d.color || this.config.colors.superTypeColors(d.supertype) || '#000'
     }));
+    
+    // Save the original data if needed.
+    this.data = data;
   
-    const supertypes = Array.from(new Set(this.nodes.map(n => n.supertype)));
-    const N = supertypes.length;
-    const cx = this.config.width / 2;
-    const cy = this.config.height / 2;
-    this.groupCenters = {};
-    supertypes.forEach((s, i) => {
-      const angle = (2 * Math.PI * i) / N;
-      this.groupCenters[s] = {
-        x: cx + this.params.groupingRadius * Math.cos(angle),
-        y: cy + this.params.groupingRadius * Math.sin(angle)
-      };
+    // Update the supertype colors mapping from the config.
+    const fixedSupertypes = this.config.colors.superTypeColors.domain();
+    fixedSupertypes.forEach(st => {
+      this.supertypeColors[st] = this.config.colors.superTypeColors(st);
     });
   
+    // Pass the nodes to the simulation.
     this.simulation.nodes(this.nodes);
+  
+    // If the GUI was not already created, create it.
+    if (!this.gui) {
+      this.setupGUI();
+    }
+    
+    this.startSimulation();
   }
+  
   
   /* ==========================================================================
      Update Node Positions on Simulation Tick
   ========================================================================== */
   updateNodePositions() {
+    // Defensive check: if the WebGL context is unavailable, exit early.
+    if (!this.gl) return;
+
     this.tickCount++;
     this.activeNodes.forEach((node, i) => {
+      // Keep nodes within bounds.
       node.x = Math.max(50, Math.min(this.canvas.width - 50, node.x));
       node.y = Math.max(50, Math.min(this.canvas.height - 50, node.y));
   
@@ -641,22 +661,25 @@ export class VisualizationController {
      Draw Trails using the nodes shader with radial gradient.
   ========================================================================== */
   drawTrails() {
+    // Defensive check: ensure WebGL context and buffers are available.
+    if (!this.gl || !this.nodesBuffer || !this.colorsBuffer) return;
+
     const gl = this.gl;
     const n = this.trails.length;
     if(n === 0) return;
   
     const trailPositions = new Float32Array(n * 2);
     const trailColors = new Float32Array(n * 4);
-    for(let i=0; i<n; i++){
+    for(let i = 0; i < n; i++){
       const t = this.trails[i];
-      trailPositions[i*2] = t.x;
-      trailPositions[i*2+1] = t.y;
+      trailPositions[i * 2] = t.x;
+      trailPositions[i * 2 + 1] = t.y;
       const col = d3.color(t.color);
-      const alpha = this.params.trail.opacity * (1 - t.age/this.params.trail.length);
-      trailColors[i*4] = col.r/255;
-      trailColors[i*4+1] = col.g/255;
-      trailColors[i*4+2] = col.b/255;
-      trailColors[i*4+3] = alpha;
+      const alpha = this.params.trail.opacity * (1 - t.age / this.params.trail.length);
+      trailColors[i * 4] = col.r / 255;
+      trailColors[i * 4 + 1] = col.g / 255;
+      trailColors[i * 4 + 2] = col.b / 255;
+      trailColors[i * 4 + 3] = alpha;
     }
   
     gl.bindBuffer(gl.ARRAY_BUFFER, this.nodesBuffer);
@@ -682,9 +705,12 @@ export class VisualizationController {
        3) Apply halftone effect
   ========================================================================== */
   render(timestamp) {
+    // Defensive check: if the WebGL context is not available, exit early.
+    if (!this.gl) return;
+  
     const gl = this.gl;
   
-    if(timestamp - this.lastSpawnTime > this.spawnDelay && this.currentSpawnIndex < Math.min(this.maxNodes, this.nodes.length)){
+    if (timestamp - this.lastSpawnTime > this.spawnDelay && this.currentSpawnIndex < Math.min(this.maxNodes, this.nodes.length)) {
       this.activeNodes.push(this.nodes[this.currentSpawnIndex]);
       this.currentSpawnIndex++;
       this.lastSpawnTime = timestamp;
@@ -750,9 +776,11 @@ export class VisualizationController {
      Animation Loop
   ========================================================================== */
   animate(timestamp) {
+    // Even though simulation.tick() doesn't use the WebGL context directly,
+    // our render() call does, so our defensive checks there are sufficient.
     this.simulation.tick();
     this.render(timestamp);
-    requestAnimationFrame(this.animate);
+    this.animationFrameId = requestAnimationFrame(this.animate.bind(this));
   }
 
   /**
@@ -770,10 +798,16 @@ export class VisualizationController {
       this.gui.destroy();
       this.gui = null;
     }
-    // (Optional) Clean up WebGL resources such as buffers and textures here.
-    // Note: There is no standard way to "destroy" a WebGL context.
+    // Clean up references.
     this.data = null;
     this.canvas = null;
     this.gl = null;
+  }
+
+  startSimulation() {
+    // Restart the D3 simulation.
+    if (this.simulation) {
+      this.simulation.alpha(1).restart();
+    }
   }
 }

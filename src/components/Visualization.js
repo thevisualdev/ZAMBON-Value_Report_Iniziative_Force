@@ -8,9 +8,25 @@ const config = {
   height: window.innerHeight,
   colors: {
     superTypeColors: d3.scaleOrdinal()
+      .domain([
+        'Italiassistenza',
+        'Zcube',
+        'Openzone',
+        'Zach',
+        'Zambon Pharma',
+        'The Group',
+        'Zambon Biotech',
+        'Zoé Foundation'
+      ])
       .range([
-        '#559A69', '#E83D30', '#BB74EA', '#77247F',
-        '#2A4E90', '#E77E9B', '#438FB5', '#D21F75'
+        '#C3CF19',  // Italiassistenza
+        '#559A69',  // Zcube
+        '#438FB5',  // Openzone
+        '#2A4E90',  // Zach
+        '#282C68',  // Zambon Pharma
+        '#77247F',  // The Group
+        '#D21F75',  // Zambon Biotech
+        '#E77E9B'   // Zoé Foundation
       ])
   }
 };
