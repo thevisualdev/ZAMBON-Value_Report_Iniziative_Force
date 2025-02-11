@@ -17,7 +17,7 @@ const config = {
 
 // Remove any existing GUI instances before creating new ones
 const cleanupGUI = () => {
-  const existingGUI = document.querySelector('.dg.ac');
+  const existingGUI = document.querySelector('.dg.visualization-gui');
   if (existingGUI) {
     existingGUI.remove();
   }
@@ -28,8 +28,9 @@ function Visualization() {
   const visualizationRef = useRef(null);
 
   useEffect(() => {
-    cleanupGUI(); // Clean up existing GUI instances
-    
+    // Clean up any existing GUIs before creating new visualization
+    cleanupGUI();
+
     async function initVisualization() {
       try {
         const canvas = canvasRef.current;
@@ -45,6 +46,16 @@ function Visualization() {
         const initiatives = await response.json();
         
         visualization.setData(initiatives);
+
+        // Force GUI to be visible and properly positioned
+        const guiElement = document.querySelector('.dg.visualization-gui');
+        if (guiElement) {
+          guiElement.style.display = 'block';
+          guiElement.style.position = 'fixed';
+          guiElement.style.top = '20px';
+          guiElement.style.right = '20px';
+          guiElement.style.zIndex = '1000';
+        }
       } catch (error) {
         console.error('Error initializing visualization:', error);
       }
@@ -53,9 +64,10 @@ function Visualization() {
     initVisualization();
     
     return () => {
-      cleanupGUI(); // Clean up when component unmounts
       if (visualizationRef.current) {
-        // Additional cleanup if needed
+        visualizationRef.current.dispose();
+        visualizationRef.current = null;
+        cleanupGUI();
       }
     };
   }, []);

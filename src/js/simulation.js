@@ -5,6 +5,10 @@ import { GUI } from 'dat.gui';
 
 export class VisualizationController {
   constructor(canvas, config) {
+    // Clean up any existing GUIs before creating a new one
+    const existingGUIs = document.querySelectorAll('.dg.ac');
+    existingGUIs.forEach(gui => gui.remove());
+
     this.canvas = canvas;
     this.config = config;
     this.gl = canvas.getContext('webgl2');
@@ -87,7 +91,64 @@ export class VisualizationController {
     this.initPrograms();
     this.setupBuffers();
     this.initFramebuffer();
-    this.setupGUI();
+    this.gui = null;  // Add this to track the GUI instance
+
+    // Create GUI with specific class name
+    const gui = new GUI({ 
+      autoPlace: false,
+      name: 'visualization-gui'
+    });
+    gui.domElement.classList.add('visualization-gui');
+    document.body.appendChild(gui.domElement);
+    
+    // Force GUI visibility and positioning
+    gui.domElement.style.position = 'fixed';
+    gui.domElement.style.top = '80px';
+    gui.domElement.style.right = '20px';
+    gui.domElement.style.zIndex = '9999';
+
+    // Add folders and keep reference to GUI
+    this.gui = gui;  // Store reference to GUI
+    
+    // Create and open folders
+    const simulationFolder = gui.addFolder('Simulation');
+    simulationFolder.add(this.params, 'nodeSize', 5, 30).name('Node Size');
+    simulationFolder.add(this.params, 'forceCenterStrength', 0, 1).name('Center Force');
+    simulationFolder.add(this.params, 'forceCollideRadius', 0, 50).name('Collision Radius');
+    simulationFolder.add(this.params, 'damping', 0, 1).name('Damping');
+    simulationFolder.add(this.params, 'spawnDelay', 50, 500).name('Spawn Delay');
+    simulationFolder.open();  // Open by default
+
+    const trailFolder = gui.addFolder('Trails');
+    trailFolder.add(this.params.trail, 'length', 10, 200).name('Trail Length');
+    trailFolder.add(this.params.trail, 'opacity', 0, 0.1).name('Trail Opacity');
+    trailFolder.add(this.params.trail, 'size', 50, 500).name('Trail Size');
+    trailFolder.add(this.params.trail, 'interval', 1, 10).step(1).name('Trail Interval');
+    trailFolder.open();  // Open by default
+
+    const halftoneFolder = gui.addFolder('Halftone');
+    halftoneFolder.add(this.params.halftone, 'radius', 0.5, 10).name('Radius');
+    halftoneFolder.add(this.params.halftone, 'rotateR', 0, Math.PI * 2).name('Rotate R');
+    halftoneFolder.add(this.params.halftone, 'rotateG', 0, Math.PI * 2).name('Rotate G');
+    halftoneFolder.add(this.params.halftone, 'rotateB', 0, Math.PI * 2).name('Rotate B');
+    halftoneFolder.add(this.params.halftone, 'scatter', 0, 5).name('Scatter');
+    halftoneFolder.add(this.params.halftone, 'shape', { 
+      Dot: 1, 
+      Ellipse: 2, 
+      Line: 3, 
+      Square: 4 
+    }).name('Shape');
+    halftoneFolder.add(this.params.halftone, 'blending', 0, 1).name('Blend Amount');
+    halftoneFolder.add(this.params.halftone, 'blendingMode', { 
+      Linear: 1, 
+      Multiply: 2, 
+      Add: 3, 
+      Lighter: 4, 
+      Darker: 5 
+    }).name('Blend Mode');
+    halftoneFolder.add(this.params.halftone, 'greyscale').name('Greyscale');
+    halftoneFolder.add(this.params.halftone, 'disable').name('Disable Effect');
+    halftoneFolder.open();  // Open by default
 
     // Bind animate and start the loop.
     this.animate = this.animate.bind(this);
@@ -433,158 +494,6 @@ export class VisualizationController {
   }
   
   /* ==========================================================================
-     Setup GUI for Debug Controls
-     Additional controls: remove all dots, start animation, spawn delay, and color controls.
-  ========================================================================== */
-  setupGUI() {
-    const gui = new GUI();
-
-    // Remove duplicate panels by calling this only once.
-
-    const forcesFolder = gui.addFolder("Forze");
-    forcesFolder.add(this.params, "forceCenterStrength", 0, 0.2)
-      .name("Center Strength")
-      .onChange(newVal => {
-        if (!this.params.grouping) {
-          this.simulation.force("x", d3.forceX(this.config.width / 2).strength(newVal));
-          this.simulation.force("y", d3.forceY(this.config.height / 2).strength(newVal));
-        }
-        this.simulation.alpha(1).restart();
-      });
-    forcesFolder.add(this.params, "forceCollideRadius", 0, 10)
-      .name("Collide Radius")
-      .onChange(newVal => {
-        this.simulation.force("collide", d3.forceCollide(d => d.radius + newVal));
-        this.simulation.alpha(1).restart();
-      });
-  
-    const groupingFolder = gui.addFolder("Grouping");
-    groupingFolder.add(this.params, "grouping")
-      .name("Group by Supertype")
-      .onChange(newVal => {
-        if (newVal) {
-          // Disable center force when grouping is on.
-          this.prevCenterStrength = this.params.forceCenterStrength;
-          this.simulation.force("x", d3.forceX(this.config.width / 2).strength(0));
-          this.simulation.force("y", d3.forceY(this.config.height / 2).strength(0));
-        } else {
-          // Restore center force.
-          this.simulation.force("x", d3.forceX(this.config.width / 2).strength(this.prevCenterStrength));
-          this.simulation.force("y", d3.forceY(this.config.height / 2).strength(this.prevCenterStrength));
-        }
-        this.simulation.alpha(1).restart();
-      });
-    groupingFolder.add(this.params, "groupingStrength", 0, 0.5)
-      .name("Grouping Strength")
-      .onChange(newVal => { this.simulation.alpha(1).restart(); });
-    groupingFolder.add(this.params, "groupingRadius", 50, 300)
-      .name("Grouping Radius")
-      .onChange(newVal => {
-        const supertypes = Array.from(new Set(this.nodes.map(n => n.supertype)));
-        const N = supertypes.length;
-        const cx = this.config.width / 2;
-        const cy = this.config.height / 2;
-        supertypes.forEach((s, i) => {
-          const angle = (2 * Math.PI * i) / N;
-          this.groupCenters[s] = {
-            x: cx + newVal * Math.cos(angle),
-            y: cy + newVal * Math.sin(angle)
-          };
-        });
-        this.simulation.alpha(1).restart();
-      });
-  
-    const simulationFolder = gui.addFolder("Simulation");
-    simulationFolder.add(this.params, "damping", 0, 1)
-      .name("Damping")
-      .onChange(newVal => {
-        this.simulation.velocityDecay(newVal);
-        this.simulation.alpha(1).restart();
-      });
-    simulationFolder.add(this.params, "spawnDelay", 50, 1000)
-      .name("Spawn Delay")
-      .onChange(newVal => {
-        this.spawnDelay = newVal;
-      });
-  
-    const nodesFolder = gui.addFolder("Nodi");
-    nodesFolder.add(this.params, "nodeSize", 10, 50)
-      .name("Node Size")
-      .onChange(newVal => {
-        this.activeNodes.forEach(node => { node.radius = newVal; });
-      });
-  
-    const trailsFolder = gui.addFolder("Trails");
-    trailsFolder.add(this.params.trail, "length", 10, 200)
-      .name("Trail Length");
-    trailsFolder.add(this.params.trail, "opacity", 0, 1)
-      .name("Trail Opacity");
-    trailsFolder.add(this.params.trail, "size", 1, 300)
-      .name("Trail Size");
-    trailsFolder.add(this.params.trail, "interval", 1, 10)
-      .name("Trail Interval");
-  
-    const halftoneFolder = gui.addFolder("Halftone");
-    halftoneFolder.add(this.params.halftone, "radius", 0.5, 10);
-    halftoneFolder.add(this.params.halftone, "rotateR", 0, Math.PI * 2);
-    halftoneFolder.add(this.params.halftone, "rotateG", 0, Math.PI * 2);
-    halftoneFolder.add(this.params.halftone, "rotateB", 0, Math.PI * 2);
-    halftoneFolder.add(this.params.halftone, "scatter", 0, 5);
-    halftoneFolder.add(this.params.halftone, "shape", { Dot: 1, Ellipse: 2, Line: 3, Square: 4 });
-    halftoneFolder.add(this.params.halftone, "blending", 0, 1);
-    halftoneFolder.add(this.params.halftone, "blendingMode", { Linear: 1, Multiply: 2, Add: 3, Lighter: 4, Darker: 5 });
-    halftoneFolder.add(this.params.halftone, "greyscale");
-    halftoneFolder.add(this.params.halftone, "disable");
-  
-    // Additional UI controls.
-    const uiFolder = gui.addFolder("UI Controls");
-    uiFolder.add({ removeDots: () => { 
-      this.activeNodes = [];
-      this.trails = [];
-      this.simulation.alpha(1).restart();
-    }}, "removeDots").name("Remove All Dots");
-    uiFolder.add({ startAnimation: () => { 
-      this.activeNodes = [];
-      this.trails = [];
-      this.currentSpawnIndex = 0;
-      this.lastSpawnTime = 0;
-      this.simulation.alpha(1).restart();
-    }}, "startAnimation").name("Start Animation");
-  
-    // Color controls: one folder for category colors and one for background.
-    // For category colors, we assume that the supertype keys are known (or compute them from the nodes).
-    // Here we add controls only if nodes have been loaded.
-    const colorsFolder = gui.addFolder("Colors");
-    // If nodes exist, build a control per category.
-    const supertypes = Array.from(new Set(this.nodes.map(n => n.supertype)));
-    supertypes.forEach(s => {
-      // Use a dummy object to hold the color value.
-      const colorControl = { color: this.config.colors.superTypeColors(s) };
-      colorsFolder.addColor(colorControl, "color").name(s).onChange(newColor => {
-        // Update the color scale for that category.
-        // For simplicity, we rebuild the color scale range for this category.
-        // (In a production app you might want a more robust mapping.)
-        this.config.colors.superTypeColors.range(
-          this.config.colors.superTypeColors.range().map(c => {
-            return (c === this.config.colors.superTypeColors(s)) ? newColor : c;
-          })
-        );
-        // Also update node colors for affected nodes.
-        this.nodes.forEach(node => {
-          if(node.supertype === s) {
-            node.color = newColor;
-          }
-        });
-      });
-    });
-    // Background color control:
-    const bgControl = { background: "#ffffff" };
-    uiFolder.addColor(bgControl, "background").name("Background").onChange(newColor => {
-      this.canvas.style.background = newColor;
-    });
-  }
-  
-  /* ==========================================================================
      Data Setup and Simulation Start
   ========================================================================== */
   setData(dataset) {
@@ -753,5 +662,17 @@ export class VisualizationController {
     this.simulation.tick();
     this.render(timestamp);
     requestAnimationFrame(this.animate);
+  }
+
+  // Add dispose method
+  dispose() {
+    if (this.gui) {
+      this.gui.destroy();
+      this.gui = null;
+    }
+    // Clean up simulation and other resources
+    if (this.simulation) {
+      this.simulation.stop();
+    }
   }
 }

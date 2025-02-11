@@ -32,8 +32,12 @@ const ImageEditor = () => {
   const cleanupGUI = () => {
     console.log('Cleaning up GUI...'); // Debug log
     const existingGUIs = document.querySelectorAll('.dg.ac');
-    console.log('Found GUIs:', existingGUIs.length); // Debug log
-    existingGUIs.forEach(gui => gui.remove());
+    existingGUIs.forEach(gui => {
+      // Only remove our specific GUI
+      if (gui.classList.contains('ImageEditorGUI')) {
+        gui.remove();
+      }
+    });
   };
 
   // Update the GUI creation effect:
@@ -43,7 +47,10 @@ const ImageEditor = () => {
     console.log('Creating GUI...'); 
     cleanupGUI();
 
-    const gui = new GUI({ autoPlace: false });
+    const gui = new GUI({ 
+      autoPlace: false,
+      name: 'ImageEditorGUI'
+    });
     console.log('GUI created:', gui);
     guiRef.current = gui;
     

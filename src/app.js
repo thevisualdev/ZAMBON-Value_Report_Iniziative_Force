@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import LandingPage from './components/LandingPage';
 import ImageEditor from './components/ImageEditor';
 import Visualization from './components/Visualization';
+import Navigation from './components/Navigation';
 
 const config = {
   width: window.innerWidth,
@@ -22,8 +23,12 @@ const config = {
 
 // Helper function to clean up GUI
 const cleanupGUI = () => {
+  console.log('Cleaning up GUI...'); // Debug log
   const existingGUIs = document.querySelectorAll('.dg.ac');
-  existingGUIs.forEach(gui => gui.remove());
+  existingGUIs.forEach(gui => {
+    console.log('Removing GUI:', gui); // Debug log
+    gui.remove();
+  });
 };
 
 // Route change handler component
@@ -31,6 +36,7 @@ function RouteChangeHandler() {
   const location = useLocation();
   
   useEffect(() => {
+    console.log('Route changed, cleaning up GUI'); // Debug log
     cleanupGUI();
   }, [location]);
   
@@ -86,6 +92,7 @@ function App() {
 
   return (
     <Router>
+      <Navigation />
       <RouteChangeHandler />
       <Routes>
         <Route path="/" element={<LandingPage />} />
