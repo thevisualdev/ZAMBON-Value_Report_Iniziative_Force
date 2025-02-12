@@ -30,29 +30,33 @@ const ImageEditor = () => {
 
   // Define cleanupGUI function
   const cleanupGUI = () => {
-    console.log('Cleaning up GUI...'); // Debug log
+    // Remove all existing GUI instances
     const existingGUIs = document.querySelectorAll('.dg.ac');
     existingGUIs.forEach(gui => {
-      // Only remove our specific GUI
-      if (gui.classList.contains('ImageEditorGUI')) {
-        gui.remove();
-      }
+      gui.remove();
     });
+    
+    // Also destroy the GUI instance if it exists
+    if (guiRef.current) {
+      guiRef.current.destroy();
+      guiRef.current = null;
+    }
   };
 
   // Update the GUI creation effect:
   useEffect(() => {
     if (!hasImage) return;
 
-    console.log('Creating GUI...'); 
+    // Clean up any existing GUIs first
     cleanupGUI();
 
     const gui = new GUI({ 
-      autoPlace: false,
-      name: 'ImageEditorGUI'
+      autoPlace: false
     });
-    console.log('GUI created:', gui);
     guiRef.current = gui;
+    
+    // Add class for identification
+    gui.domElement.classList.add('ImageEditorGUI');
     
     document.body.appendChild(gui.domElement);
     gui.domElement.style.position = 'fixed';
@@ -249,37 +253,11 @@ const ImageEditor = () => {
   };
 
   const handleExport = () => {
-    if (!canvasRef.current || !editor) return;
-
-    // Create a temporary canvas for correct export
-    const tempCanvas = document.createElement('canvas');
-    const tempCtx = tempCanvas.getContext('2d');
-    
-    // Match dimensions of the WebGL canvas
-    tempCanvas.width = canvasRef.current.width;
-    tempCanvas.height = canvasRef.current.height;
-    
-    // Force a final render to ensure latest state
-    editor.render(params);
-    
-    // Get the WebGL canvas content
-    const imageData = canvasRef.current.getContext('webgl2').canvas.toDataURL('image/png');
-    
-    // Create a temporary image to handle the data
-    const img = new Image();
-    img.onload = () => {
-      // Draw to temp canvas with white background if needed
-      tempCtx.fillStyle = '#FFFFFF';
-      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-      tempCtx.drawImage(img, 0, 0);
-      
-      // Export from temp canvas
-      tempCanvas.toBlob((blob) => {
-        const exportName = `${originalFileName}-cmyk-halftone.png`;
-        saveAs(blob, exportName);
-      }, 'image/png');
-    };
-    img.src = imageData;
+    if (!canvasRef.current) return;
+    canvasRef.current.toBlob((blob) => {
+      const exportName = `${originalFileName}-cmyk-halftone.png`;
+      saveAs(blob, exportName);
+    }, 'image/png');
   };
 
   const handleNewFile = () => {

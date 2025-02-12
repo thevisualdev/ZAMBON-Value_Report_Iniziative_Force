@@ -9,34 +9,37 @@ const config = {
   colors: {
     superTypeColors: d3.scaleOrdinal()
       .domain([
-        'Italiassistenza',
-        'Zcube',
-        'Openzone',
-        'Zach',
-        'Zambon Pharma',
-        'The Group',
-        'Zambon Biotech',
-        'Zoé Foundation'
+        'Zambon Pharma',      // Pharma division - 23 initiatives (Good Science & Industrial Business Operations)
+        'Zambon',             // The Group - 13 initiatives (People Care & Benvivere)
+        'Fondazione Zoe',     // Foundation - 9 initiatives
+        'Zambon Biotech',     // Biotech division - 8 initiatives (Product Innovation & Valutazione)
+        'Openzone',          // Scientific campus - 6 initiatives
+        'Zambon Chemicals',   // Chemical division - 5 initiatives (Investimenti)
+        'Zambon Open Venture', // Innovation hub - 4 initiatives (Corporate Venture & Open Accelerator)
+        'ItaliAssistenza'    // Healthcare services - 2 initiatives (Careapt)
       ])
       .range([
-        '#C3CF19',  // Italiassistenza
-        '#559A69',  // Zcube
-        '#438FB5',  // Openzone
-        '#2A4E90',  // Zach
-        '#282C68',  // Zambon Pharma
-        '#77247F',  // The Group
-        '#D21F75',  // Zambon Biotech
-        '#E77E9B'   // Zoé Foundation
+        '#B3BC2C',  // Zambon Pharma (Lime)
+        '#559A69',  // Zambon (Green)
+        '#438FB5',  // Fondazione Zoe (Light Blue)
+        '#2A4E90',  // Zambon Biotech (Royal Blue)
+        '#68368C',  // Openzone (Navy Blue)
+        '#77247F',  // Zambon Chemicals (Purple)
+        '#D21F75',  // Zambon Open Venture (Pink)
+        '#AD677A'   // ItaliAssistenza (Light Pink)
       ])
   }
 };
 
 // Remove any existing GUI instances before creating new ones
 const cleanupGUI = () => {
-  const existingGUI = document.querySelector('.dg.visualization-gui');
-  if (existingGUI) {
-    existingGUI.remove();
-  }
+  // Remove all dat.GUI instances
+  const existingGUIs = document.querySelectorAll('.dg.ac');
+  existingGUIs.forEach(gui => {
+    if (gui.parentElement) {
+      gui.parentElement.removeChild(gui);
+    }
+  });
 };
 
 function Visualization() {
@@ -64,16 +67,6 @@ function Visualization() {
         }
         const initiatives = await response.json();
         visualization.setData(initiatives);
-
-        // Force GUI to be visible and properly positioned
-        const guiElement = document.querySelector('.dg.visualization-gui');
-        if (guiElement) {
-          guiElement.style.display = 'block';
-          guiElement.style.position = 'fixed';
-          guiElement.style.top = '20px';
-          guiElement.style.right = '20px';
-          guiElement.style.zIndex = '1000';
-        }
       } catch (error) {
         console.error('Error initializing visualization:', error);
       }
@@ -85,8 +78,8 @@ function Visualization() {
       if (visualizationRef.current) {
         visualizationRef.current.dispose();
         visualizationRef.current = null;
-        cleanupGUI();
       }
+      cleanupGUI();
     };
   }, []);
   

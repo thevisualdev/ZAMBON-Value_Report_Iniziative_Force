@@ -12,23 +12,21 @@ export class ImageEditorGL {
   }
 
   initShaders() {
-    // Vertex shader for rendering a fullscreen quad
     const vsSource = `#version 300 es
       precision mediump float;
       layout(location = 0) in vec2 a_position;
       out vec2 vUV;
       void main() {
-        vUV = vec2((a_position.x + 1.0) * 0.5, 1.0 - (a_position.y + 1.0) * 0.5);
+        vUV = 1.0 - ((a_position + 1.0) * 0.5);
         gl_Position = vec4(a_position, 0, 1);
       }
     `;
 
-    // Fragment shader (reusing the halftone shader from simulation.js)
     const fsSource = `#version 300 es
-      precision mediump float;
+      precision highp float;
       in vec2 vUV;
       out vec4 fragColor;
-      
+
       #define SQRT2_MINUS_ONE 0.41421356
       #define SQRT2_HALF_MINUS_ONE 0.20710678
       #define PI22 6.28318531
@@ -43,169 +41,193 @@ export class ImageEditorGL {
       #define BLENDING_DARKER 5
 
       uniform sampler2D u_image;
-      uniform float u_radius;
-      uniform float u_rotateR;
-      uniform float u_rotateG;
-      uniform float u_rotateB;
-      uniform float u_scatter;
-      uniform float u_width;
-      uniform float u_height;
-      uniform int u_shape;
-      uniform bool u_disable;
-      uniform float u_blending;
-      uniform int u_blendingMode;
-      uniform bool u_greyscale;
+      uniform float radius;
+      uniform float rotateR;
+      uniform float rotateG;
+      uniform float rotateB;
+      uniform float scatter;
+      uniform float width;
+      uniform float height;
+      uniform int shape;
+      uniform bool disable;
+      uniform float blending;
+      uniform int blendingMode;
+      uniform bool greyscale;
+
+      const int samples = 8;
 
       float blend(float a, float b, float t) {
         return a * (1.0 - t) + b * t;
       }
+
       float hypot(float x, float y) {
-        return sqrt(x*x + y*y);
+        return sqrt(x * x + y * y);
       }
+
       float rand(vec2 seed) {
-        return fract(sin(dot(seed, vec2(12.9898, 78.233))) * 43758.5453);
+        return fract(sin(dot(seed.xy, vec2(12.9898, 78.233))) * 43758.5453);
       }
+
       float distanceToDotRadius(float channel, vec2 coord, vec2 normal, vec2 p, float angle, float rad_max) {
         float dist = hypot(coord.x - p.x, coord.y - p.y);
         float rad = channel;
-        if (u_shape == SHAPE_DOT) {
+        
+        if (shape == SHAPE_DOT) {
           rad = pow(abs(rad), 1.125) * rad_max;
-        } else if (u_shape == SHAPE_ELLIPSE) {
+        } else if (shape == SHAPE_ELLIPSE) {
           rad = pow(abs(rad), 1.125) * rad_max;
           if (dist != 0.0) {
-            float dot_p = abs((p.x - coord.x)/dist * normal.x + (p.y - coord.y)/dist * normal.y);
+            float dot_p = abs((p.x - coord.x) / dist * normal.x + (p.y - coord.y) / dist * normal.y);
             dist = (dist * (1.0 - SQRT2_HALF_MINUS_ONE)) + dot_p * dist * SQRT2_MINUS_ONE;
           }
-        } else if (u_shape == SHAPE_LINE) {
+        } else if (shape == SHAPE_LINE) {
           rad = pow(abs(rad), 1.5) * rad_max;
-          float dot_p = (p.x - coord.x)*normal.x + (p.y - coord.y)*normal.y;
-          dist = hypot(normal.x*dot_p, normal.y*dot_p);
-        } else if (u_shape == SHAPE_SQUARE) {
+          float dot_p = (p.x - coord.x) * normal.x + (p.y - coord.y) * normal.y;
+          dist = hypot(normal.x * dot_p, normal.y * dot_p);
+        } else if (shape == SHAPE_SQUARE) {
           float theta = atan(p.y - coord.y, p.x - coord.x) - angle;
           float sin_t = abs(sin(theta));
           float cos_t = abs(cos(theta));
           rad = pow(abs(rad), 1.4);
-          rad = rad_max * (rad + ((sin_t > cos_t) ? rad - sin_t*rad : rad - cos_t*rad));
+          rad = rad_max * (rad + ((sin_t > cos_t) ? rad - sin_t * rad : rad - cos_t * rad));
         }
         return rad - dist;
       }
+
       struct Cell {
         vec2 normal;
         vec2 p1;
         vec2 p2;
         vec2 p3;
         vec2 p4;
+        float samp2;
+        float samp1;
+        float samp3;
+        float samp4;
       };
+
       vec4 getSample(vec2 point) {
-        vec4 tex = texture(u_image, vec2(point.x / u_width, point.y / u_height));
-        float base = rand(vec2(floor(point.x), floor(point.y)))* PI22;
-        float step = PI22 / 8.0;
-        float dist = u_radius * 0.66;
-        for (int i = 0; i < 8; ++i) {
+        vec4 tex = texture(u_image, vec2(point.x / width, point.y / height));
+        float base = rand(vec2(floor(point.x), floor(point.y))) * PI22;
+        float step = PI22 / float(samples);
+        float dist = radius * 0.66;
+        
+        for (int i = 0; i < samples; ++i) {
           float r = base + step * float(i);
-          vec2 coord = point + vec2(cos(r)*dist, sin(r)*dist);
-          tex += texture(u_image, vec2(coord.x / u_width, coord.y / u_height));
+          vec2 coord = point + vec2(cos(r) * dist, sin(r) * dist);
+          tex += texture(u_image, vec2(coord.x / width, coord.y / height));
         }
-        tex /= 9.0;
+        tex /= float(samples) + 1.0;
         return tex;
       }
+
+      float getDotColour(Cell c, vec2 p, int channel, float angle, float aa) {
+        if (channel == 0) {
+          c.samp1 = getSample(c.p1).r;
+          c.samp2 = getSample(c.p2).r;
+          c.samp3 = getSample(c.p3).r;
+          c.samp4 = getSample(c.p4).r;
+        } else if (channel == 1) {
+          c.samp1 = getSample(c.p1).g;
+          c.samp2 = getSample(c.p2).g;
+          c.samp3 = getSample(c.p3).g;
+          c.samp4 = getSample(c.p4).g;
+        } else {
+          c.samp1 = getSample(c.p1).b;
+          c.samp2 = getSample(c.p2).b;
+          c.samp3 = getSample(c.p3).b;
+          c.samp4 = getSample(c.p4).b;
+        }
+
+        float dist_c_1 = distanceToDotRadius(c.samp1, c.p1, c.normal, p, angle, radius);
+        float dist_c_2 = distanceToDotRadius(c.samp2, c.p2, c.normal, p, angle, radius);
+        float dist_c_3 = distanceToDotRadius(c.samp3, c.p3, c.normal, p, angle, radius);
+        float dist_c_4 = distanceToDotRadius(c.samp4, c.p4, c.normal, p, angle, radius);
+
+        float res = (dist_c_1 > 0.0) ? clamp(dist_c_1 / aa, 0.0, 1.0) : 0.0;
+        res += (dist_c_2 > 0.0) ? clamp(dist_c_2 / aa, 0.0, 1.0) : 0.0;
+        res += (dist_c_3 > 0.0) ? clamp(dist_c_3 / aa, 0.0, 1.0) : 0.0;
+        res += (dist_c_4 > 0.0) ? clamp(dist_c_4 / aa, 0.0, 1.0) : 0.0;
+        return clamp(res, 0.0, 1.0);
+      }
+
       Cell getReferenceCell(vec2 p, vec2 origin, float grid_angle, float step) {
         Cell c;
         vec2 n = vec2(cos(grid_angle), sin(grid_angle));
         float threshold = step * 0.5;
-        float dot_normal = n.x*(p.x - origin.x) + n.y*(p.y - origin.y);
-        float dot_line = -n.y*(p.x - origin.x) + n.x*(p.y - origin.y);
-        vec2 offset = vec2(n.x*dot_normal, n.y*dot_normal);
-        float offset_normal = mod(length(offset), step);
+        float dot_normal = n.x * (p.x - origin.x) + n.y * (p.y - origin.y);
+        float dot_line = -n.y * (p.x - origin.x) + n.x * (p.y - origin.y);
+        vec2 offset = vec2(n.x * dot_normal, n.y * dot_normal);
+        float offset_normal = mod(hypot(offset.x, offset.y), step);
         float normal_dir = (dot_normal < 0.0) ? 1.0 : -1.0;
-        float normal_scale = ((offset_normal < threshold) ? -offset_normal : step-offset_normal)*normal_dir;
-        float offset_line = mod(length(p-offset-origin), step);
+        float normal_scale = ((offset_normal < threshold) ? -offset_normal : step - offset_normal) * normal_dir;
+        float offset_line = mod(hypot((p.x - offset.x) - origin.x, (p.y - offset.y) - origin.y), step);
         float line_dir = (dot_line < 0.0) ? 1.0 : -1.0;
-        float line_scale = ((offset_line < threshold) ? -offset_line : step-offset_line)*line_dir;
+        float line_scale = ((offset_line < threshold) ? -offset_line : step - offset_line) * line_dir;
+
         c.normal = n;
-        c.p1 = p - n*normal_scale + vec2(n.y, -n.x)*line_scale;
-        c.p2 = c.p1 - n*((offset_normal < threshold) ? step : -step);
-        c.p3 = c.p1 + vec2(n.y, -n.x)*((offset_line < threshold) ? step : -step);
-        c.p4 = c.p1 - n*((offset_normal < threshold) ? step : -step) + vec2(n.y, -n.x)*((offset_line < threshold) ? step : -step);
-        return c;
-      }
-      float getDotColour(Cell c, vec2 p, int channel, float angle, float aa) {
-        float samp1, samp2, samp3, samp4;
-        if(channel==0){
-          samp1 = getSample(c.p1).r;
-          samp2 = getSample(c.p2).r;
-          samp3 = getSample(c.p3).r;
-          samp4 = getSample(c.p4).r;
-        } else if(channel==1){
-          samp1 = getSample(c.p1).g;
-          samp2 = getSample(c.p2).g;
-          samp3 = getSample(c.p3).g;
-          samp4 = getSample(c.p4).g;
-        } else {
-          samp1 = getSample(c.p1).b;
-          samp2 = getSample(c.p2).b;
-          samp3 = getSample(c.p3).b;
-          samp4 = getSample(c.p4).b;
-        }
-        float dist1 = distanceToDotRadius(samp1, c.p1, c.normal, p, angle, u_radius);
-        float dist2 = distanceToDotRadius(samp2, c.p2, c.normal, p, angle, u_radius);
-        float dist3 = distanceToDotRadius(samp3, c.p3, c.normal, p, angle, u_radius);
-        float dist4 = distanceToDotRadius(samp4, c.p4, c.normal, p, angle, u_radius);
-        float res = 0.0;
-        res += (dist1>0.0)? clamp(dist1/aa, 0.0, 1.0):0.0;
-        res += (dist2>0.0)? clamp(dist2/aa, 0.0, 1.0):0.0;
-        res += (dist3>0.0)? clamp(dist3/aa, 0.0, 1.0):0.0;
-        res += (dist4>0.0)? clamp(dist4/aa, 0.0, 1.0):0.0;
-        return clamp(res, 0.0, 1.0);
-      }
-      float blendColour(float a, float b, float t) {
-        if(u_blendingMode==BLENDING_LINEAR){
-          return blend(a,b,1.0-t);
-        } else if(u_blendingMode==BLENDING_ADD){
-          return blend(a, min(1.0,a+b),t);
-        } else if(u_blendingMode==BLENDING_MULTIPLY){
-          return blend(a, max(0.0,a*b),t);
-        } else if(u_blendingMode==BLENDING_LIGHTER){
-          return blend(a, max(a,b),t);
-        } else if(u_blendingMode==BLENDING_DARKER){
-          return blend(a, min(a,b),t);
-        } else {
-          return blend(a,b,1.0-t);
-        }
-      }
-      void main() {
-        if (u_disable) {
-          vec4 color = texture(u_image, vUV);
-          fragColor = color;
-          return;
+        c.p1.x = p.x - n.x * normal_scale + n.y * line_scale;
+        c.p1.y = p.y - n.y * normal_scale - n.x * line_scale;
+
+        if (scatter != 0.0) {
+          float off_mag = scatter * threshold * 0.5;
+          float off_angle = rand(vec2(floor(c.p1.x), floor(c.p1.y))) * PI22;
+          c.p1.x += cos(off_angle) * off_mag;
+          c.p1.y += sin(off_angle) * off_mag;
         }
 
-        vec4 originalColor = texture(u_image, vUV);
-        
-        // Preserve alpha channel
-        float alpha = originalColor.a;
-        
-        vec2 p = vec2(vUV.x*u_width, vUV.y*u_height);
-        vec2 origin = vec2(0.0,0.0);
-        float aa = (u_radius<2.5)? u_radius*0.5 : 1.25;
-        Cell cell_r = getReferenceCell(p,origin, u_rotateR, u_radius);
-        Cell cell_g = getReferenceCell(p,origin, u_rotateG, u_radius);
-        Cell cell_b = getReferenceCell(p,origin, u_rotateB, u_radius);
-        float r = getDotColour(cell_r, p, 0, u_rotateR, aa);
-        float g = getDotColour(cell_g, p, 1, u_rotateG, aa);
-        float b = getDotColour(cell_b, p, 2, u_rotateB, aa);
-        vec4 orig = originalColor;
-        r = blendColour(r, orig.r, u_blending);
-        g = blendColour(g, orig.g, u_blending);
-        b = blendColour(b, orig.b, u_blending);
-        if(u_greyscale){
-          float grey = (r+g+b)/3.0;
-          r = g = b = grey;
+        float normal_step = normal_dir * ((offset_normal < threshold) ? step : -step);
+        float line_step = line_dir * ((offset_line < threshold) ? step : -step);
+        c.p2.x = c.p1.x - n.x * normal_step;
+        c.p2.y = c.p1.y - n.y * normal_step;
+        c.p3.x = c.p1.x + n.y * line_step;
+        c.p3.y = c.p1.y - n.x * line_step;
+        c.p4.x = c.p1.x - n.x * normal_step + n.y * line_step;
+        c.p4.y = c.p1.y - n.y * normal_step - n.x * line_step;
+        return c;
+      }
+
+      float blendColour(float a, float b, float t) {
+        if (blendingMode == BLENDING_LINEAR) {
+          return blend(a, b, 1.0 - t);
+        } else if (blendingMode == BLENDING_ADD) {
+          return blend(a, min(1.0, a + b), t);
+        } else if (blendingMode == BLENDING_MULTIPLY) {
+          return blend(a, max(0.0, a * b), t);
+        } else if (blendingMode == BLENDING_LIGHTER) {
+          return blend(a, max(a, b), t);
+        } else if (blendingMode == BLENDING_DARKER) {
+          return blend(a, min(a, b), t);
+        } else {
+          return blend(a, b, 1.0 - t);
         }
-        fragColor = vec4(r, g, b, 1.0);
-        
-        // Apply alpha at the end
-        fragColor.a = alpha;
+      }
+
+      void main() {
+        if (!disable) {
+          vec2 p = vec2(vUV.x * width, vUV.y * height);
+          vec2 origin = vec2(width * 0.5, height * 0.5);
+          float aa = (radius < 2.5) ? radius * 0.5 : 1.25;
+
+          Cell cell_r = getReferenceCell(p, origin, rotateR, radius);
+          Cell cell_g = getReferenceCell(p, origin, rotateG, radius);
+          Cell cell_b = getReferenceCell(p, origin, rotateB, radius);
+          float r = getDotColour(cell_r, p, 0, rotateR, aa);
+          float g = getDotColour(cell_g, p, 1, rotateG, aa);
+          float b = getDotColour(cell_b, p, 2, rotateB, aa);
+
+          vec4 colour = texture(u_image, vUV);
+          r = blendColour(r, colour.r, blending);
+          g = blendColour(g, colour.g, blending);
+          b = blendColour(b, colour.b, blending);
+          
+          if (greyscale) {
+            r = g = b = (r + b + g) / 3.0;
+          }
+          fragColor = vec4(r, g, b, 1.0);
+        } else {
+          fragColor = texture(u_image, vUV);
+        }
       }
     `;
 
@@ -254,9 +276,9 @@ export class ImageEditorGL {
     
     // Set uniforms
     gl.uniform1f(this.uniforms.radius, params.halftone.radius);
-    gl.uniform1f(this.uniforms.rotateR, params.halftone.rotateR);
-    gl.uniform1f(this.uniforms.rotateG, params.halftone.rotateG);
-    gl.uniform1f(this.uniforms.rotateB, params.halftone.rotateB);
+    gl.uniform1f(this.uniforms.rotateR, (Math.PI / params.halftone.rotateR) * 1);
+    gl.uniform1f(this.uniforms.rotateG, (Math.PI / params.halftone.rotateG) * 2);
+    gl.uniform1f(this.uniforms.rotateB, (Math.PI / params.halftone.rotateB) * 3);
     gl.uniform1f(this.uniforms.scatter, params.halftone.scatter);
     gl.uniform1f(this.uniforms.width, this.canvas.width);
     gl.uniform1f(this.uniforms.height, this.canvas.height);
@@ -306,18 +328,18 @@ export class ImageEditorGL {
   getUniformLocations() {
     return {
       image: this.gl.getUniformLocation(this.program, 'u_image'),
-      radius: this.gl.getUniformLocation(this.program, 'u_radius'),
-      rotateR: this.gl.getUniformLocation(this.program, 'u_rotateR'),
-      rotateG: this.gl.getUniformLocation(this.program, 'u_rotateG'),
-      rotateB: this.gl.getUniformLocation(this.program, 'u_rotateB'),
-      scatter: this.gl.getUniformLocation(this.program, 'u_scatter'),
-      width: this.gl.getUniformLocation(this.program, 'u_width'),
-      height: this.gl.getUniformLocation(this.program, 'u_height'),
-      shape: this.gl.getUniformLocation(this.program, 'u_shape'),
-      disable: this.gl.getUniformLocation(this.program, 'u_disable'),
-      blending: this.gl.getUniformLocation(this.program, 'u_blending'),
-      blendingMode: this.gl.getUniformLocation(this.program, 'u_blendingMode'),
-      greyscale: this.gl.getUniformLocation(this.program, 'u_greyscale')
+      radius: this.gl.getUniformLocation(this.program, 'radius'),
+      rotateR: this.gl.getUniformLocation(this.program, 'rotateR'),
+      rotateG: this.gl.getUniformLocation(this.program, 'rotateG'),
+      rotateB: this.gl.getUniformLocation(this.program, 'rotateB'),
+      scatter: this.gl.getUniformLocation(this.program, 'scatter'),
+      width: this.gl.getUniformLocation(this.program, 'width'),
+      height: this.gl.getUniformLocation(this.program, 'height'),
+      shape: this.gl.getUniformLocation(this.program, 'shape'),
+      disable: this.gl.getUniformLocation(this.program, 'disable'),
+      blending: this.gl.getUniformLocation(this.program, 'blending'),
+      blendingMode: this.gl.getUniformLocation(this.program, 'blendingMode'),
+      greyscale: this.gl.getUniformLocation(this.program, 'greyscale')
     };
   }
 } 
